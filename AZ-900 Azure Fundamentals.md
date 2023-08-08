@@ -201,8 +201,8 @@
     - During DR - can create VMs in Azure as a DR strategy 
     - Assist with lift & shift strategy into the cloud 
 - VM Resources - additional azure objects/resources tied to VM that are necessary for it to function
-    - Size of VM (purpose, # of cores, RAM)
-    - Storage (Hard drives, SSD, etc)
+    - Size of VM (purpose, # of cores, RAM) 
+    - Storage (Hard drives, SSD, etc) 
     - Networking (VNet, Public IP, Port config...)
 
 ### Virtual Desktop 
@@ -249,12 +249,181 @@
     - endpoints can be secured
     - scalable to handle dynamic demand with built in load balancing and traffic manager to provide HA 
 
-
 ### Virtual Networking 
+- Azure virtual networks & subnets enable Azure resources such as VMs webapps & databases to communicate with each other & across the public internet  
+- Extra details from [VNet Service Endpoints](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-service-endpoints-overview)
+    - VNet service endpoint provides secure/direct connectivity to Az services over an optimized route over Azure backbone network 
+    - endpoints are enabled on subnets configured in AZ VNets - can't be used for traffic from on-prem to azure services as they are not reachable from on-prem network 
+- Azure Networks Capabilities: 
+    - **Isolation & Segmentation** 
+        - can create multiple isolated vnets 
+        - you define a private IP address space by using public or private IP address ranges 
+        - IP range only exists within the vnet and isn't internet routable. 
+        - can divide the IP address space into subnets and allocate part of the defined address space to each named subset 
+    - **Internet Comms**
+        - you can enable incoming connections from the internet by assigning a public IP address to an Azure resource, or putting it behind a load balancer
+    - **Communicate between Azure resources** 
+        - can communicate securely between resources, not just your own, but Azure services like AKS, App service, VM scale sets... 
+        - service endpoints can enable you to link multiple azure resource to vnets to improve security and provide optimal routing 
+    - **Communicate with on-premises resources** 
+        - Azure VNets allow you to link on-prem resources to your azure subscription - creating a network that spans local and cloud envm 
+        - _Point-to-site VPN_ a computer outside your org, back into your corp network. Client computer begins an encrypted VPN to connect to Azure VNet
+        - _Site-to-Site VPN_ link your on-premise VPN device or gateway to Azure VPN gateway in a VNet - devices in Azure can appear as being on local network through an encrypted public connection 
+        - _Azure ExpressRoute_ dedicated private connectivity that doesn't travel over internet. - Used for high bandwidth, high security scenarios 
+    - **Route Network Traffic** 
+        - azure routes traffic between subnets on any connected Vnets, on-prem and the internet 
+        - these rules are defined in route tables and can be customized to control how packets are routed between subnets 
+        - BGP works with Azure VPN gateways, Azure Route Server or ExpressRoute to propagate on-prem BGP routes to Azure VNet 
+    - **Filter network Traffic** 
+        - _Network Security Groups_ allow you to filter traffic between subnets by defining inbound/outbound security rules based on IP address, port, protocol, source/destination... 
+            - can create an NSG that gets applied to certain types of VMs... 
+        - _Network Virtual Appliances_ specialized VMs that are similar to a physical network appliance - run a firewall, provide WAN, etc... 
+    - **Connect VNets** 
+        - can link VNets through peering, and enables separate VNets to communicate (even across regions)
+        - network traffic between peered networks is private & secured - it travels through MSFT network never connecting to public internet 
+        - *User Defined Routing (UDR)* allows you to control routing tables between subnets within a VNet or between VNets
+
+### Azure VPN 
+- a VPN uses an encrypted tunnel within another network 
+    - typically deployed to connect 2+ trusted private networks to one another over an untrusted network (typically internet)
+    - encrypts traffic during untrusted network to prevent malfeasance & ensure safe/secure sharing of info 
+- **VPN Gateway** 
+    - One type of VNet Gateway that allows: (A network gateway joins two networks so the devices on one network can communicate with the devices on another network.) 
+        - connecting to on-prem datacenters to VNets through a site-to-site connection 
+        - connect indv devices to VNets through a point-to-site connection 
+        - connect VNets to other VNets through a network-to-network connection 
+    - only ONE VPN Gateway for each VNet - can use one gateway to connect to multiple locations which can have their own VPN Gateways 
+    - When you deploy a VPN Gateway, you specify the TYPE: Policy or Route, both use pre-shared key as only method of authc
+        - *Policy-based VPN Gateways*: specify statically the IP address of packets that should be encrypted through each tunnel 
+            - said another way - they evaluate every data packet against those sets of IP addresses to choose the tunnel where that packet is going to be sent through 
+        - *Route based VPN Gateways*: IPSec tunnels are modeled as a NIC or Virtual Tunnel Interface - IP routing (either static routes or dynamic routing) decides which one of these tunnel interfaces to use when sending each packet 
+            - route-based VPNs are preferred method for on-premises, they are more resilient to topology changes (creation of new subnets)
+            - route-based works best for: Connections between VNets, Point-to-site connections, multi-site connections, coexistence with ExpressRoute 
+            - seems like this is the *preferred* choice 
+- HA scenarios for VPN
+    - **Active/Standby**: default configuration 
+        - when planned maintenance occurs connections are interrumpted and restored within a few seconds, uninterrupted can take as much as 90 seconds 
+    - **Active/Active**: Using BGP routing protocol, you can deploy VPN gateways in an active/active 
+        - you assign unique public IPs to each, then create separate tunnels from on-prem device to each IP
+        - can be extended by deploying additional VPN devices on-prem 
+    - **ExpressRoute Failover to VPN Gateway**: If ExpressRoute fails, can configure it to failover to VPN gateway 
+        - while expressroute built in with resiliency - there could be an outage that compromises it & can setup VPN gateway as a backup to ensure constant connection to VNet
+    - **Zone Redundant Gateways**: can setup VPN Gateways & ExpressRoute gateways in zone-redundant config 
+        - ultra extreme resiliency and HA - with physical and logical separation within a region
+        - use different resources (Gateway Stock Keeping Units SKUs) & use standard public IP addresses instead of basic Public IP addresses 
+
+### Azure ExpressRoute 
+- Extend on-prem network to MSFT cloud datacenter with private connection - connection is called "ExpressRoute Circuit" 
+- can connect offices, datacenters, etc. Each connection has its own expressroute 
+- connectivity can be from any-to-any IP VPN network, a point-to-point Ethernet network, or Virtual cross-connection through a provider 
+- these connections are more secure (don't go over internet) and offer more reliability, speed & consistency 
+    - DNS queries, certificate revocation list checking and Azure CDN are sent over public internet 
+- **Benefits of ExpressRoute** 
+    - connectivity to MSFT cloud services across all regions in geo-region 
+    - global connectivity using Global Reach 
+    - Dynamic routing between network & microsoft via BGP 
+    - built in redundancy 
+- Can connect to services in ALL regions: 
+    - MS Office 365
+    - MS Dynamics 365
+    - Azure Compute services (VMs)
+    - Azure Cloud services (Azure Cosmos DB / Az storage) 
+- Global connectivity through ExpressRoute Global reach to exchange data across on-prem sites - a private highway to send data across continents 
+- Dynamic routing through BGP to exchange routes between on-prem and resources running in Azure 
+- Connectivity Approaches with ExpressRoute 
+    - Cloud Exchange colocation: your datacenter/office physically colocated at cloud exchange/ISP - request virtual cross-connect to MSFT cloud 
+    - Point-to-Point Ethernet Connection: using a point-to-point connection between your facility and MSFT Azure (data link layer ? laying cable ?)
+    - Any-to-Any Connection: Integrate your WAN with Azure by providing connections to multi office/datacenter. Azure integrates with WAN so you can connect between datacenter, branch offices & Azure 
+    - Direct from ExpressRoute Sites: connect with global network peering location 
+
+### Azure DNS 
+- Hosting service for DNS domains that provide name resolution by using MS Azure infra 
+    - can manage your DNS records with Azure using same creds, APIs, tools & billing as other Azure infra 
+    - does NOT buy domain names - once purchased, it can be hosted in Azure DNS
+- Benefits: reliability & performance, security, ease of use, customizable VNets, alias records 
+    - Reliability: Azure DNS are hosted on Azure's global network of DNS name servers with HA and resiliency
+    - Performance: Azure uses anycast networking, so DNS query is answered by closest avail DNS server for perf 
+    - Security: Azure DNS based on Resource Manager which allows RBAC, activity logs & resource locking (no accidental deletes)
+    - Ease of Use: can provide DNS for external services & azure stuff you own, can be managed via CLI and through existing Azure subscription (one-stop-shop)
+    - customizable VNets with private domains: can setup custom domains in private VNets, so you don't have to use Azure ones 
+    - Alias record sets: can set alias records
 
 ### Public/Private Endpoints 
 
 ## Storage Services 
+
+### Azure Storage Accounts 
+- storage account type determines redundancy, archival, etc... 
+    - LRS:   Locally Redundant Storage
+    - GRS:   Geo-Redundant storage
+    - RA-GRS:   Read-access Geo-Redundant Storage
+    - ZRS:   Zone Redundant Storage 
+    - GZRS:  Geo-Zone Redundant Storage 
+    - RA-GZRS:  Read Access Geo-Zone-Redundant Storage
+
+|  Type     |   Supported Services  | Redundancy Options |  Usage                   |
+|-----------|-----------------------|--------------------|--------------------------|
+| Standard, general purpose v2 | Blob Storage, Queue Storage, Table storage & Azure files | ALL | Standard storage for blobs, file shares, queues and tables. | 
+| Premium Block Blobs | Blob storage (including data lake) | LRS, ZRS | Premium for block blobs & append blobs - recommended for high Tx or small obj, or low storage latency |
+| Premium file shares | Azure Files | LRS, ZRS | Premium storage for file shares - recommended for HP apps, or storage account that supports Server Message block and NFS file systems. |
+| Premium page blobs | Page blobs ONLY | LRS | Premium storage for page blobs only. |
+
+- storage account endpoints
+    - must have a unique (in Azure) account name & combo of account name and azure storage endpoint 
+    - storage account names must be 3-24 chars in len with lowercase alnum 
+    - storage account name must be unique within Azure to enable unique accessible namespaces
+
+| Storage service |	Endpoint |
+|-----------------|-----------------------|
+| Blob Storage    |	https://<*storage-account-name*>.***blob***.core.windows.net |
+| Data Lake Storage Gen2    |	https://<*storage-account-name*>.***dfs***.core.windows.net |
+| Azure Files   |	https://<*storage-account-name*>.***file***.core.windows.net |
+| Queue Storage |	https://<*storage-account-name*>.***queue***.core.windows.net |
+| Table Storage   |	https://<*storage-account-name*>.***table***.core.windows.net |
+
+### Azure Storage redundancy 
+- Azure always stores multiple copiess of data for availability & durability 
+- Consider trade-offs between lower costs and HA requirements 
+    - how data is replicated in primary region
+    - whether data is replicated to second region for DR purposes 
+    - whether app requires read access to replicated data in sescond region if primary goes down 
+
+#### Redundancy in Primary Region (LRS, ZRS)
+- LRS:   Locally Redundant Storage
+    - Replicates data 3x *SYNCHronously* in single data center in primary region's chosen zone 
+    - Provides 11 9's durability 
+    - lowest cost option - provides protection against server rack & drive failures - but no true DR strategy 
+- ZRS:   Zone Redundant Storage 
+    - For AZ enabled regions, ZRS replicates Azure storage data *SYNCHronously* across 3 AZs in primary region
+    - provides 12 9's durability - basically an HA LRS
+    - allows r/w if zone dies, recommended for data replication within a country, or to handle Azure network update downtime or zone DR
+
+#### Redundancy in a secondary region (GRS, RA-GRS, GZRS, RA-GZRS)
+- the 'G'*RS - copy data to a secondary region for DR 
+- Storage accounts made in one region are AUTOMATICALLY paired to a secondary region that CANNOT be changed. 
+    - GRS ~ LRS  and  GZRS ~ ZRS just across 2 regions 
+- by default, data in secondary region isn't avail for r/w access until there's a failover to secondary - in short it needs to be "promoted" to primary before it allows r/w 
+    - largely due to the fact data is replicated to secondary region *ASYNCHronously* 
+    - Interval between most recent writes to primary and last write to secondary is RPO - generally less than 15 min, but no official SLA 
+- GRS:   Geo-redundant Storage
+    - Does LRS in primary (synch copy 3x), THEN does ASYNCH to secondary then does LRS
+    - provides 16 9's durability
+- GZRS: Geo-zone redundant Storage
+    - Combines geo & ZRS - does ZRS in primary (synch copy 3x across AZs), THEN does ASYNCH to secondary, then does ZRS there 
+    - used for maximum consistency, durability, HA, performance and ultimate DR resilience 
+    - provides 16 9's durability 
+- Read access to data in secondary region - can be set up using RA-GRS or RA-GZRS so secondary can be read from, but it may not match primary due to RPO
+
+### Azure Storage Services  
+- BLOB: images/docs, archive, video/audio
+- Azure file share: shares data
+- Azure Disk Storage: adds disks to VMs (SSDs & HDD)
+- Table storage in cheap db file format 
+- message queue 
+- HOT, Cool (infrequent access) & archive (rarely accessed)
+### Data Migration 
+### Azure File Movement Options 
+
 
 ## Access Controls, Identiy & Security 
 

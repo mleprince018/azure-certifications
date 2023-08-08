@@ -26,6 +26,97 @@ az vm extension set \
   --protected-settings '{"commandToExecute": "./configure-nginx.sh"}'
 ```
 
+```
+marc [ ~ ]$ az vm list-ip-addresses
+[
+  {
+    "virtualMachine": {
+      "name": "my-vm",
+      "network": {
+        "privateIpAddresses": [
+          "10.0.0.4"
+        ],
+        "publicIpAddresses": [
+          {
+            "id": "/subscriptions/76b50b69-6a20-4079-b075-3f796c72cac3/resourceGroups/learn-6f1d149f-0c34-4ad2-ad0d-398c213cc66f/providers/Microsoft.Network/publicIPAddresses/my-vmPublicIP",
+            "ipAddress": "20.253.162.210",
+            "ipAllocationMethod": "Dynamic",
+            "name": "my-vmPublicIP",
+            "resourceGroup": "learn-6f1d149f-0c34-4ad2-ad0d-398c213cc66f",
+            "zone": null
+          }
+        ]
+      },
+      "resourceGroup": "learn-6f1d149f-0c34-4ad2-ad0d-398c213cc66f"
+    }
+  }
+]
+IPADDRESS="$(az vm list-ip-addresses \
+  --resource-group $rg_learn \
+  --name my-vm \
+  --query "[].virtualMachine.network.publicIpAddresses[*].ipAddress" \
+  --output tsv)"
+
+az network nsg list \
+  --resource-group $rg_learn \
+  --query '[].name' \
+  --output tsv
+
+marc [ ~ ]$ az network nsg rule list   --resource-group $rg_learn   --nsg-name my-vmNSG
+[
+  {
+    "access": "Allow",
+    "destinationAddressPrefix": "*",
+    "destinationAddressPrefixes": [],
+    "destinationPortRange": "22",
+    "destinationPortRanges": [],
+    "direction": "Inbound",
+    "etag": "W/\"2875972e-133e-41a2-9145-a9c604ed1dd7\"",
+    "id": "/subscriptions/76b50b69-6a20-4079-b075-3f796c72cac3/resourceGroups/learn-6f1d149f-0c34-4ad2-ad0d-398c213cc66f/providers/Microsoft.Network/networkSecurityGroups/my-vmNSG/securityRules/default-allow-ssh",
+    "name": "default-allow-ssh",
+    "priority": 1000,
+    "protocol": "Tcp",
+    "provisioningState": "Succeeded",
+    "resourceGroup": "learn-6f1d149f-0c34-4ad2-ad0d-398c213cc66f",
+    "sourceAddressPrefix": "*",
+    "sourceAddressPrefixes": [],
+    "sourcePortRange": "*",
+    "sourcePortRanges": [],
+    "type": "Microsoft.Network/networkSecurityGroups/securityRules"
+  }
+]
+marc [ ~ ]$ az network nsg rule list \
+  --resource-group $rg_learn \
+  --nsg-name my-vmNSG \
+  --query '[].{Name:name, Priority:priority, Port:destinationPortRange, Access:access}' \
+  --output table
+Name               Priority    Port    Access
+-----------------  ----------  ------  --------
+default-allow-ssh  1000        22      Allow
+
+
+az network nsg rule create \
+  --resource-group $rg_learn \
+  --nsg-name my-vmNSG \
+  --name allow-http \
+  --protocol tcp \
+  --priority 100 \
+  --destination-port-range 80 \
+  --access Allow
+
+marc [ ~ ]$ az network nsg rule list \
+  --resource-group $rg_learn \
+  --nsg-name my-vmNSG \
+  --query '[].{Name:name, Priority:priority, Port:destinationPortRange, Access:access}' \
+  --output table
+Name               Priority    Port    Access
+-----------------  ----------  ------  --------
+default-allow-ssh  1000        22      Allow
+allow-http         100         80      Allow
+```
+
+
+ - use the '.' to traverse down the list to indv child The [*] allows you to pick up all the children for a particular thing
 # SAS Install 
 > in the destination file, find the regexp and if there, replace with the line value - brilliance of Erwan 
 ```
@@ -33,7 +124,6 @@ ansible localhost -m lineinfile \
   -a "dest=~/.bashrc \
       regexp='^export STUDENT' \
       line='export STUDENT=malepr'" --diff
-```
 ansible localhost -m lineinfile -a "dest=~/.bashrc \
       regexp='^export TF_VAR_client_secret' \
       line='export TF_VAR_client_secret=$(az ad sp create-for-rbac --skip-assignment --name http://${STUDENT} --query password --output tsv)'" --diff
@@ -46,14 +136,14 @@ ansible localhost -m lineinfile -a "dest=~/.bashrc \
 ansible localhost -m lineinfile -a "dest=~/.bashrc \
       regexp='^export TF_VAR_tenant_id' \
       line='export TF_VAR_tenant_id=$(az account list --query "[?name=='TeamFD'].{tenantId:tenantId}" -o tsv)'" --diff
+```
 - after you create the service principal using az ad sp create-for-rbac - seems that GEL SKIPPED ASSIGNMENT so that they could get the password in one command, store it and the ID in another. 
 - BUUUT that still leaves you with a service principal with no role - so you assign it later as a contributor 
 - HOWEVER - to do that, you need to be an owner or user admin in Azure to write roles to a particular subscription 
 - This also means - it is okay to create a service principal that is different from your student name 
 az role assignment create --assignee $SP_APPID --role Contributor --scopes="/subscriptions/"
 
-- validate with: 
-az login --service-principal -u $TF_VAR_client_id -p $TF_VAR_client_secret --tenant $TF_VAR_tenant_id
+- validate with: `az login --service-principal -u $TF_VAR_client_id -p $TF_VAR_client_secret --tenant $TF_VAR_tenant_id`
 - if terraform doesn't init - https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/service_principal_client_secret 
 - *somehow GEL team didn't use a service principal?* 
 

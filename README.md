@@ -7,4 +7,5 @@
 
 
 # References for Azure Admin Associate
-- https://query.prod.cms.rt.microsoft.com/cms/api/am/binary/RE4AElB 
+- https://query.prod.cms.rt.microsoft.com/cms/api/am/binary/RE4AElB  
+- [Az Network Foundation Services](https://learn.microsoft.com/en-us/training/paths/intro-to-azure-network-foundation-services/)

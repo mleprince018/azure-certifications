@@ -6,7 +6,7 @@
 
 - Grabbing the learn* resource group and storing in a var for use: `rg_learn=$(az group list --query "[].[name]" -o tsv | grep learn*)`
 
-```
+```bash
 az vm create \
   --resource-group $rg_learn \
   --name my-vm \
@@ -15,7 +15,7 @@ az vm create \
   --generate-ssh-keys
 ```
 
-```
+```bash
 az vm extension set \
   --resource-group $rg_learn \
   --vm-name my-vm \
@@ -61,8 +61,10 @@ az network nsg list \
   --resource-group $rg_learn \
   --query '[].name' \
   --output tsv
+```
 
 marc [ ~ ]$ az network nsg rule list   --resource-group $rg_learn   --nsg-name my-vmNSG
+```json
 [
   {
     "access": "Allow",
@@ -85,6 +87,8 @@ marc [ ~ ]$ az network nsg rule list   --resource-group $rg_learn   --nsg-name m
     "type": "Microsoft.Network/networkSecurityGroups/securityRules"
   }
 ]
+```
+```
 marc [ ~ ]$ az network nsg rule list \
   --resource-group $rg_learn \
   --nsg-name my-vmNSG \

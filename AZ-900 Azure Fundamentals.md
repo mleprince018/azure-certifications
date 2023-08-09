@@ -353,13 +353,8 @@
 ## Storage Services 
 
 ### Azure Storage Accounts 
+
 - storage account type determines redundancy, archival, etc... 
-    - LRS:   Locally Redundant Storage
-    - GRS:   Geo-Redundant storage
-    - RA-GRS:   Read-access Geo-Redundant Storage
-    - ZRS:   Zone Redundant Storage 
-    - GZRS:  Geo-Zone Redundant Storage 
-    - RA-GZRS:  Read Access Geo-Zone-Redundant Storage
 
 |  Type     |   Supported Services  | Redundancy Options |  Usage                   |
 |-----------|-----------------------|--------------------|--------------------------|
@@ -387,6 +382,13 @@
     - how data is replicated in primary region
     - whether data is replicated to second region for DR purposes 
     - whether app requires read access to replicated data in sescond region if primary goes down 
+- Types of Redundancy
+    - LRS:   Locally Redundant Storage
+    - ZRS:   Zone Redundant Storage 
+    - GRS:   Geo-Redundant storage
+    - RA-GRS:   Read-access Geo-Redundant Storage
+    - GZRS:  Geo-Zone Redundant Storage 
+    - RA-GZRS:  Read Access Geo-Zone-Redundant Storage
 
 #### Redundancy in Primary Region (LRS, ZRS)
 - LRS:   Locally Redundant Storage
@@ -415,17 +417,144 @@
 - Read access to data in secondary region - can be set up using RA-GRS or RA-GZRS so secondary can be read from, but it may not match primary due to RPO
 
 ### Azure Storage Services  
-- BLOB: images/docs, archive, video/audio
-- Azure file share: shares data
-- Azure Disk Storage: adds disks to VMs (SSDs & HDD)
-- Table storage in cheap db file format 
-- message queue 
-- HOT, Cool (infrequent access) & archive (rarely accessed)
-### Data Migration 
-### Azure File Movement Options 
+- General benefits of Azure Storage: 
+    - durable & HA - Azure's already got infra & systems & software in place to perform data replication across disks, datacenters & regions 
+    - secure - all data written to azure storage account is encrypted (at rest?)
+    - scalable - designed to be massively scalable to meet storage & perf needs 
+    - managed - azure manages all hardware maintenance, updates and critical issues for you 
+    - accessible - access form anywhere over HTTP(S) and with CLI packages that make it easy to manage
+- Allows for selection & creation of below types: 
+    - Container (Blob storage as it is held in Containers)
+    - File Shares 
+    - Queues
+    - Tables 
 
+- **Blob Storage**: massively scalable obj store for text & binary data - images/docs, archive, video/audio
+    - supports big data analytics through data lake storage Gen2 
+    - blob storage is unstructured - no restriction on data it can hold AND can manage thousands of simultaneous uploads, data, log files, etc...
+    - Best for: images & docs -> browser, storing files for distr access, streaming video & audio, storing data for backup/restore/DR/archival, storing data for analysis 
+    - Blob objects can be accessed through their URL using various languages 
+    - Azure calls "containers" ~ AWS Bucket
+    - **Blob Storage Tiers** - To manage costs for data storage, you can set a retention period and frequency of access   
+        - Hot: Optimized for storing data that is accessed frequently (website)
+        - Cool: Optimized for data that is infrequently accessed and stored for at least 30 days 
+        - Cold: rarely accessed data you want to keep for at least 90 days
+        - Archive: data that is rarely accessed and has flexible latency 
+        - NOTE: hot & cool can be set at account level, archive isn't avail at account level 
+        - NOTE: hot/cool/archive can be set at blob level - during or after upload 
+        - NOTE: Archive offers lowest storage costs, but higher costs to pull data, cool storage is between
+- **Azure file share**: managed file shares for sharing data across multiple machines/services (for cloud/on-prem) 
+    - Offers Server Message Block (SMB) (accessible by Windows, Linux & macOS) or *NFS* protocol (accessible by Linux & macOS)
+    - can be mounted concurrently by cloud or on-prem - can be cached on Windows Servers with Azure File Sync for faster access
+    - Key Benefits: 
+        - shared access: can replace on-prem file-shares with azure file shares without worrying about compatibility 
+        - fully managed: no need to manage OS/hardware, patches, security updates, etc... 
+        - scripting and tooling: CLI can create/mount/manage AZFS
+        - built for resiliency and durable 
+        - familiar programmability: can be accessed through APIs, storage client libraries or azure storage REST API 
+- **Azure Disk Storage**: adds disks to VMs (SSDs & HDD) - block level storage volumes 
+    - block-level storage volumes managed by azure - virtualized for easy management and durable 
+- **Azure Queues**: message queue store for reliable messaging between application components 
+    - service for storing large numbers of 64KB messages 
+    - can be tied with Azure Functions to take action nwhen a message is received
+        - should be able to access from anywhere in the world
+
+### Data Migration to Azure 
+- Synch data migration (Azure Migrate) & Asynch Data Migration (Azure Data Box)
+- **Azure Migrate** : central hub to manage assessment and migration of on-prem datacenter to Azure
+    - unified migration platform to start, run and track migration to Azure 
+    - range of tools for assessment & migration for basic discovery & assessment 
+        - Azure Migrate: Discovery & Assessment - discover & assess on-prem servers running VMware, Hyper-V and physical servers in prep for migration 
+        - Azure Migrate: Server Migration - migrate VMware VMs, Hyper-V VMs, physical and other VMs to public cloud VMs in Azure 
+        - Data Migration Assistant - standalone tool to assess SQL server - poinpoints potential problems that could block migration, unsupported features, and new features to transition to 
+        - Azure DB Migration service - migrate on-prem db to Azure VMs running SQL Server, Azure  SQL database, or SQL managed instances 
+        - Web App Migration assistant - assess on-prem websites for migration to Azure App Service, migrate .NET & PHP web apps to Azure 
+        - Azure Data Box - move large amounts of offline data to Azure 
+- **Azure Data Box** : physical migration service that helps transfer large amounts of data in a quick, inexpensive and reliable way. 
+    - Azure ships you a giant data storage device with 80 TB max capacity, then transported in a robust case and uploaded to datacenter 
+    - can be ordered from Azure portal & can be set up and then sent back to Azure. It is tracked end-to-end 
+    - best suited for 40+ TB data transfer with limited/no network connectivity and frequency can be one-time, periodic, or bulk 
+        - one-time migration for initial migration, moving media library to create online media library, migrating VM farm, SQL server, apps, historical data
+        - initial bulk transfer done with data box (seed) then followed by incremental transfers over the network 
+        - periodic uploads - periodic boxes sent 
+    - once uploaded, disks on databox are wiped in accordance with NIST 800-88r1 standards
+    - Scenarios Data Box can be used to export data from Azure: 
+        - DR: a copy of data from Azure is restored on an on-prem network, data placed on Databox, and shipped to client 
+        - Security req - when you need to export data out of azure due to govt or sec reqm
+        - Migrate back to on-prem or another cloud service - when you want to move all the data, use data box 
+
+### Azure File Movement Options 
+- Azure has tools to help you move indv files or small file groups 
+- **AzCopy** 
+    - CLI utility to copy blobs or files to/from storage account 
+    - can upload/download or copy files between storage accounts
+    - can synch files (one direction synch) it will copy files/blobs from source to destination. Does not synch timestamps or other metadata 
+- **Azure Storage Explorer**  
+    - standalone app that provides GUI to manage files/blobs in Az storage account 
+    - runs on Windows, macOS & Linux - uses AzCopy on the backend to perform uploads to Azure, downloads or movement between accounts 
+- **Azure File Sync** 
+    - tool that lets you centralize your files in Azure Files and keep flexibility, perf and compatibility of Windows file server 
+        - like turning windows file server into a mini-CDN
+    - you install Azure file sync on a local windows server, it stays bi-directionally synched with files in Azure 
+    - allows you to use any protocol avail to Windows server to access data locally (SMB, NFS & FTPS) 
+    - setup as many of these as you like around the world 
+    - replace a failed local server by installing Azure file synch on a new server in the same datacenter 
+    - configure cloud tiering so most frequently accessed files are replicated locally, while others are kept in cloud 
 
 ## Access Controls, Identiy & Security 
+
+### Azure Directory Services (Azure AD) 
+- directory service that allows you to sign in and access MSFT cloud apps & cloud apps you develop 
+- can also maintain on-prem AD 
+    - AD running on Windows Server provides ID & Access Mgt service that's managed by your org 
+- Azure AD is MSFT cloud-based ID & Access Mgt service 
+    - you control ID accounts, but MSFT ensures service is available globally 
+    - has additional featurs normal on-prem AD doesn't have (monitoring sign in attempts from unexpected locations, devices, etc...)
+
+- Azure AD can be used by: 
+    - IT Admins - for controlling access to apps & resources based on biz req 
+    - App Devs - providing standards based approach for adding functionatliy to apps they build - SSO to an app, or enabling to work with existing creds... 
+    - Users - can manage their IDs & take maintenance actions (password reset, etc...)
+    - Online service subscribers - MSFT 365, MSFT Office 365, Azure, etc can use Azure AD to authc 
+- Azure AD provides: 
+    - *Authc*: verifying ID to access apps & resources AND self-service password reset, MFA, banned passwds & smart lockout services 
+    - *SSO*: enables you to remember only 1 user/pass for multiple apps, can simplify security model and enable easier management of user on/off boarding 
+    - *app mgt*: manage your cloud and on-prem apps using Azure AD - app proxy, SaaS apps, my apps portal & SSO provide better user exp 
+    - *device mgt*: Az AD can register devices to be managed through MSFT Intune - or device-based conditional access policies (only allow access from valid device) 
+
+- What do you do with existing on-prem AD? 
+    - If you have a separate Azure AD and on-prem AD, they need to run indp with 2 identity sets 
+    - you can connect your AD with Azure AD enabling consistent ID set --> Azure AD Connect 
+    - **Azure AD Connect** *bi-directional synchs* user IDs btw on-prem AD & Az AD for authc, MFA, SSO... 
+
+- **Azure AD DS (Domain Services)**
+    - a service that provides managed domain services: domain join, group policy, LDAP, & Kerberos/NTLM authc  
+        - as with other AZ services, no need to maintain infra or deploy/manage/patch domain controllers in the cloud 
+    - can run legacy apps in cloud that can use modern authc methods, or you don't want to do directory lookups that hit on-prem all the time 
+    - Azure AD DS integrates with existing Azure AD tenant - users can sign into services & apps connected to managed domain using existing creds 
+        - can also use existing groups & user accounts to secure access to resources 
+    - when you create an Azure AD DS - you define a unique namespace AKA the domain name 
+        - then two windows server domain controllers (a replica set) are then deployed into your selected Azure region
+        - no need to manage, configure/update the DCs, includes backups & encryption at rest 
+    - Managed domain is configured to perform a *one-way synch* from Azure AD --> Azure AD DS (see below on theh left) 
+        - you can create resources directly in managed domain, but they aren't synched back 
+        - can be chained with on-prem AD --> Azure AD connect --> Azure AD --> Azure AD DS (managed service) {opposite direction from diagram below}
+
+![Azure AD DS Synching](./pictures/Fundamentals_azure-active-directory-sync-topology.png)
+
+### Azure Authc Methods 
+
+### Azure External IDs
+
+### Azure Conditional Access 
+
+### Azure RBAC 
+
+### Zero Trust Model 
+
+### Defense-in-Depth 
+
+### MSFT Defender for Cloud 
 
 # Azure Management & Governance 
 

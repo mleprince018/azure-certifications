@@ -539,23 +539,173 @@
     - Managed domain is configured to perform a *one-way synch* from Azure AD --> Azure AD DS (see below on theh left) 
         - you can create resources directly in managed domain, but they aren't synched back 
         - can be chained with on-prem AD --> Azure AD connect --> Azure AD --> Azure AD DS (managed service) {opposite direction from diagram below}
+<div style="width:50%"> 
 
 ![Azure AD DS Synching](./pictures/Fundamentals_azure-active-directory-sync-topology.png)
+</div>
 
-### Azure Authc Methods 
+### Azure Authc Methods (password, SSO, MFA, passwordless)
+- authentication Authc is the process of establishing the identity of a person, service or device. 
+- It requires the person/service/device to provide some type of credential to prove who they are (like showing ID) 
+    - It doesn't mean you are ticketed (authorized), but simply that you are who you say you are 
+- **SSO** : enables a user to sign in one time and use that credential to access multiple resources & apps across the network 
+    - *For SSO to work, those resources & apps MUST trust the initial authenticator*
+    - This is beneficial to simplify passwords used across apps & individual authc (user-id/passwd) setup across all of them, let alone management for on/off boarding
+    - SSO allows users to only know one ID & password, which simplifies security model and makes it easy for centralized access management. 
+- **MFA** : process of prompting a user for an extra form (or factor) of ID during sign-in 
+    - this is a code text sent to phone, or an MFA app, etc... So that it increases chances it is really "you"
+    - Authentication is based on these categories: 
+        - something the user knows (password, challenge question...)
+        - something the user has (ID card, specific mobile phone...)
+        - something the user is (fingerprint or bioscan) 
+    - Azure AD MFA: a msft service that provides MFA - such as phone call or mobile app notification 
+- **Passwordless** : password is replaced with other items
+    - requires pre-setup on device like a specific laptop or computer, and it needs to be registered with Azure so it is "trusted" 
+    - Once setup, you can provide something (a pin or finger print) and get authenticated without using a password 
+    - Windows Hello for Business : best for info workers that have a designated PC - can use biometric & PIN creds 
+        - these can be setup with PKI & SSO for passwordless access
+    - MSFT Authenticator App : can be setup for MFA or to be used ass passwordless option 
+        - sign into platform/browser, match number to authc app, and facial recognition and now you have access!
+    - FIDO2 security keys : Fast IDentity Online Alliance helps promote open auth standards WebAuthn is the latest
+        - FIDO2 security keys are unphishable stds based passwordless authc by using a security or platform key built into a device 
+        - users register and then select this key at sign in. With hardware handling authc, very little chance password is exposed. 
+        - typically USB, but could be bluetooth/NFC... 
+     
+### Azure External IDs 
+- A person/device/service that's outside of your org
+- sometimes your partners, clients, vendors, distributors, suppliers, etc need to interact with your AZ resources and you need to authc & auth them
+- External users can "bring their own identities" - use a corporate or govt issued digital ID (Facebook, Google...) 
 
-### Azure External IDs
+- **B2B Collaboration** - collaborate with external users by letting them use their preferred ID to sign-in to your msft apps or other enterprise apps
+    - generally represented as "guest users" in you directory 
+- **B2B Direct Connect** - est a mutual 2-way trust with another Azure AD org for seamless collab 
+    - supports teams shared channels, allow users to access your resources within their home instances of teams 
+    - users aren't represented in your directory, but are visible from Teams shared channel and can be monitored 
+- **Azure AD B2C** - publish SaaS apps or custom dev apps to consumers/customers while using this service for ID & Access Mgt 
 
-### Azure Conditional Access 
+- Can use combo of the above, can use Azure AD B2B to invite users from a different AD
+    - then set up guest users with appropriate access, and have an elevated guest user certify other guest users prior to access... 
+<div style="width:35%"> 
+
+![External Identities accessing Azure](./pictures/Fundamentals_azure-active-directory-external-identities.png)
+</div>
+
+### Azure Conditional Access  
+- a tool that AZ AD uses to allow/deny access to resources based on ID signals 
+- this is pre-auth, but post-authc to filter out valid IDs that are requesting the wrong things or from the wrong places
+    - signals being: who the user is, where the user is and what device the user is requesting from. 
+- allows for more granular MFA - if user is at known location, no MFA. If unexpected, MFA 
+- simple business logic based on user, location, device and requested resource and deciding to allow access/deny/restrict/MFA... 
+    - I.E. a high risk location may be blocked entirely 
+- Usecases: 
+    - MFA that's dependent on requester role, location, network (MFA for admins but not users)
+    - Restrict access through approved client apps (only outlook can access email) 
+    - Require access to app from managed devices (only company laptop accesses corp website)
+    - Block access from untrusted sources
 
 ### Azure RBAC 
+- Principle of Least Privilege: Only grant access up to level needed to complete a task 
+    - can fulfill that with RBAC by defining role templates that can get assigned to users that grant specific levels of access within Mgt Groups, Subscriptions, Resource Groups & specific resources 
+    - Management Group (collection of multiple subscriptions) --> subscription --> resource group --> single resource 
+    - parent scope is auto-inherited by all child objects 
+- *RBAC is enforced on any action initiated against an az resource that passes through AZ Resource Manager* 
+    - AZ Resource manager is a service that provides a way to organize & secure your cloud resources 
+    - AZ Resource manager is Accessible through portal, shell, powershell & cli 
+    - NOTE: Does NOT enforce permissions at application (within app) or data level 
+    - RBAC uses an allow model (additive) - it allows you to perform actions within scope of those combined roles
+        - meaning it will grant you the TOTAL of allowable actions defined by your roles assigned 
+        - I.E. contributor role at subscription, but reader on resource group -> still get ability to create resources within that resource group. 
+
+![Azure RBAC Hierarchy vs Roles](./pictures/Fundamentals_role-based-access-scope.png)
 
 ### Zero Trust Model 
+- a security model that assumes worst case scenario and protects resources with that expectation AKA verify everything
+    - Verify each request as though it originated from an uncontrolled network 
+    - requires you to do anything/everything in Azure with right creds & keys 
+- Guiding principles of Zero Trust
+    - Verify Explicitly: Always authc & auth with all avail data points 
+    - Use least privilege access: limit user access with just in time & just enough access - risk adaptive policies and data protection 
+    - assume breach: mimimize blast radius and segment access - verify E2E encryption, use analytics to drive visibility, threat detection...
+- Generally, in a corp network, everyone is assumed trusted within the walled garden 
+- Now that the hardware & network are "rented" you need to get everyone to authc all the time. 
+
+<div style="width:25%"> 
+
+![Zero Trust Picture](./pictures/Fundamentals_zero-trust.png)
+</div>
 
 ### Defense-in-Depth 
+- objective: protect info & prevent it from being stolen by unauth users
+
+**7 Layers of Defense** 
+1. Physical Security - protect computing hardware in datacenter 
+    - building access, physically securing building, and physically safeguard hardware
+2. ID & Access Mgt - controls access to infra & change control 
+    - Ensuring IDs are secure, access only granted to what's needed, and all sign-ins & changes are logged 
+    - control access to infra & change control, use SSO & MFA, audit events & changes 
+3. Perimeter Layer - users DDoS protection to filter requests before DDoS occurs
+    - Stops network based attacks (DDoS) & Perimeter firewalls to ID & alert on malicious attacks 
+4. Network layer - limits comms between resources through segmentation & access controls 
+    - Limiting network connectivity between your resources to reduce contagion 
+    - deny by default, restrict inbound internet access & limit outbound access 
+    - secure connectivty to on-prem network 
+5. Compute layer - secures access to VMs & stay up to date with patching & implement endpoint protection
+    - malware, unpatched and improperly secured systems leave envm open
+6. Application layer - ensures apps are secure and free of vulnerabilities 
+    - integrate security in App Dev Lifecycle - free of vulnerabilities 
+    - store sensitive app secrets in secure medium 
+    - make security design a req for all app dev 
+7. Data layer - controls access to biz & customer data you need to protect 
+    - those who store & control data are resp for it. So secure it in 
+        - databases
+        - on disk (at rest) in VM 
+        - stored in SaaS apps 
+        - managed through cloud storage 
+
+![Defense-in-Depth Layers](./pictures/Fundamentals_defense-depth.png)
 
 ### MSFT Defender for Cloud 
+- Azure native Monitoring tool for security posture mgt & threat protection 
+    - monitors cloud, on-prem, hybrid & multi-cloud envm to provide guidance and notifications 
+    - does this automatically for Azure machines
+- Many Azure services are monitored & protected without needing MSFT Defender for cloud deployed 
+    - need a separate deployment for Azure to monitor your on-prem or multi-cloud setup 
+    - can auto-deploy a log analytics agent to gather security related data 
+        - uses Azure Arc to extend to non Azure machines
+        - Cloud security posture management (CSPM) features 
+- **Azure-Native Protections** 
+    - Azure PaaS services: threat detection for Azure App Service, Azure SQL, Azure Storage acct, and other data services. 
+        - can perform anomaly detection on azure activity logs using MSFT Defender for Cloud Apps
+    - Azure Data Services: can auto-classify data in Azure SQL & get assessments for potential vulnerabilities across SQL & Storages services with mitigation recommendations
+    - Networks: Defender for cloud limits exposure to brute force attacks 
+        - reduce access to VM ports, and just in time VM access, can harden network by preventing unnecessary access 
+        - set secure access policies on selected ports, for select authorized users, allowable IP ranges, and for certain times 
+- Hybrid cloud deployments - can protect your on-prem stuff. Deploy Azure Arc & enable Defender for Cloud's enhanced features 
+- Multi Cloud - can support AWS & GCP 
+    - CSPM extend to AWS resources and assess for compliance to AWS standards
+    - Container defense can extend to Amazon EKS Linux clusters 
+    - Servers defense brings threat detection to windows/linux EC2 instances 
+- **Assess, Secure & Defend** 
+    - *Continuously Assess*: know your security posture, ID & track vulnerabilities 
+        - monitoring, providing vulnerability assessments and vulnerability scans for compute, data & infra that show results in defender for cloud
+    - *Secure*: harden resources and services within Az Security Benchmarks 
+        - security from your head to toes - security policies can be set to run on mgt, groups, subscriptions and tenants
+        - will constantly monitor for new resources and assess if they are configured within IT policy spec 
+            - issues are flagged and prioritized with recommendations from Az Security Benchmark: MSFT & Az specific benchmark for security & compliance best practices based on a variety of frameworks 
+            - provides a high level aggregated dashboard 
+    - *Defend*: detect & resolve threats to resources, workloads & services 
+        - monitors for security breaches 
+        - security alerts: generated after threat identified, describes details of affected resources, suggested remediation steps, and provides an option to trigger logic app in response 
+            - can even do analysis on a cyber kill-chain to figure out story of attack campaign, where it started and impact on resources 
+        - advanced threat protection: can secure the management ports of your VMs with just-in-time access & adaptive app controls to create allowlists for what apps should & shouldn't run on your machine
+
 
 # Azure Management & Governance 
 
- 
+## Cost Management in Azure 
+
+## Features & Tools for Govn & Compliance
+
+## Managing & Deploying Azure Resources 
+
+## Monitoring Tools in Azure 

@@ -13,9 +13,7 @@ az vm create \
   --image UbuntuLTS \
   --admin-username azureuser \
   --generate-ssh-keys
-```
 
-```bash
 az vm extension set \
   --resource-group $rg_learn \
   --vm-name my-vm \
@@ -62,8 +60,10 @@ az network nsg list \
   --query '[].name' \
   --output tsv
 ```
-
+> Adding a network NSG rule to allow HTTP traffic to the VM 
+```bash 
 marc [ ~ ]$ az network nsg rule list   --resource-group $rg_learn   --nsg-name my-vmNSG
+```
 ```json
 [
   {
@@ -88,8 +88,9 @@ marc [ ~ ]$ az network nsg rule list   --resource-group $rg_learn   --nsg-name m
   }
 ]
 ```
-```
-marc [ ~ ]$ az network nsg rule list \
+
+```bash
+az network nsg rule list \
   --resource-group $rg_learn \
   --nsg-name my-vmNSG \
   --query '[].{Name:name, Priority:priority, Port:destinationPortRange, Access:access}' \
@@ -97,7 +98,6 @@ marc [ ~ ]$ az network nsg rule list \
 Name               Priority    Port    Access
 -----------------  ----------  ------  --------
 default-allow-ssh  1000        22      Allow
-
 
 az network nsg rule create \
   --resource-group $rg_learn \
@@ -108,7 +108,7 @@ az network nsg rule create \
   --destination-port-range 80 \
   --access Allow
 
-marc [ ~ ]$ az network nsg rule list \
+az network nsg rule list \
   --resource-group $rg_learn \
   --nsg-name my-vmNSG \
   --query '[].{Name:name, Priority:priority, Port:destinationPortRange, Access:access}' \

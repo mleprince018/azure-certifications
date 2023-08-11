@@ -539,7 +539,7 @@
     - Managed domain is configured to perform a *one-way synch* from Azure AD --> Azure AD DS (see below on theh left) 
         - you can create resources directly in managed domain, but they aren't synched back 
         - can be chained with on-prem AD --> Azure AD connect --> Azure AD --> Azure AD DS (managed service) {opposite direction from diagram below}
-<div style="width:50%"> 
+<div style="width:1024px"> 
 
 ![Azure AD DS Synching](./pictures/Fundamentals_azure-active-directory-sync-topology.png)
 </div>
@@ -585,7 +585,7 @@
 
 - Can use combo of the above, can use Azure AD B2B to invite users from a different AD
     - then set up guest users with appropriate access, and have an elevated guest user certify other guest users prior to access... 
-<div style="width:35%"> 
+<div style="width:512px"> 
 
 ![External Identities accessing Azure](./pictures/Fundamentals_azure-active-directory-external-identities.png)
 </div>
@@ -629,7 +629,7 @@
 - Generally, in a corp network, everyone is assumed trusted within the walled garden 
 - Now that the hardware & network are "rented" you need to get everyone to authc all the time. 
 
-<div style="width:25%"> 
+<div style="width:768px"> 
 
 ![Zero Trust Picture](./pictures/Fundamentals_zero-trust.png)
 </div>
@@ -704,8 +704,276 @@
 
 ## Cost Management in Azure 
 
-## Features & Tools for Govn & Compliance
+### Factors that affect cost in Az
+- TCO calculator can do analysis that is sliced & diced by mgt orgs
+- pricing calculator to select services that fit your budget & add up costs, and adjust (cost estimator)
+- azure advisor: can make recommendations and optimize spend 
+
+- moving to the client converts IT CapEx to OpEx through renting hardware and services 
+- Cost in the cloud depends on a variety of factors including: 
+- **Resource Type**: 
+    - Types of resources, settings for the resource and the region
+    - Az creates metered instances for the resource and track usage record that generates your bill 
+    - I.E. For Blob Storage it depends on performance tier, access, redundancy settings & region
+    - I.E. For a VM - it involves licenses for the OS, # & type of :cpus, memory, storage, NIC...
+- **Consumption**: 
+    - pay as you go model ~ to a utility 
+    - you get discounts on reserved resources (databases, compute, storage)
+        - you commit to using and paying a certain amount for a certain period of time -> discount 
+        - still have flexibility to scale up if need be 
+- **Maintenance** 
+    - scaling up & down within resource groups allows you to track costs 
+- **Geography** 
+    - when you provision resources they are tied to a region, and cost, labor, taxes & fees vary by region as well as network costs for data transfers
+- **Network Traffic** 
+    - billing zones are a factor in determining cost
+    - bandwidth for data moving in & out of azure data centers 
+    - in general it's based on certain types of data moving in, outbound data transfers & the geo zone (group of az regions) you are in for ingress, egress & transfer
+- **Subscription Type** 
+    - subscriptions include usage allowances which can affect costs (certain products are free for some period of time...)
+- **Azure Marketplace** 
+    - Az Marketplace you can purchase Az solutions from 3rd party vendors 
+    - typically a pre-configured PaaS or SaaS
+    - you pay for Az markup & 3rd party vendor cost 
+    - like apple app store - these are all vetted & compliant with Az policies & stds, certifications vary by type of service 
+
+### Compare TCO & Pricing calculator 
+- both are free & accessible on the internet
+- **Pricing Calculator**: designed to give an estimated cost of provisioning resources in Az (forecast Az cost & spend)
+    - these are an estimate, not actuals... and all sorts of stuff 
+- **TCO Calculator**: sales calculator to compare costs of on-prem infra compared to Az cloud infra and ensure you are incurring minimal costs
+    - you enter your ON-PREM servers, db, storage, network traffic and cost it out 
+    - add in assumptions like power & IT labor costs and provides difference of running in Azure 
+
+### Describe Azure Cost Mgt Tool 
+- Az is global cloud provider offering global resource provision, can set limits or things to control cost policies
+- Cost Mgt is a reporting & mgt tool that provides tool to quickly check on Az resource costs, create alerts based on resource spend and budgets to automate mgt of resources 
+- **Cost Alerting**: create cost alerts in a central location to check on Budget, Credit or Department spending quota alerts. 
+    - Budget vs Credit Alerts vs Dept quota
+        - budget alerts notify you when spending, reaches or exceeds the defined amount in your alert
+            - defined by cost or consumption usage & generated whenever budget conditions are met, alert is sent to email list 
+        - credit alerts notify you when az credit commitments are consumed - generated automatically at 90 & 100%
+        - department spending reaches a fixed threshold of the quota, which is configured in the Enterprise Agreement portal 
+- **Budgets**: spending limit for az
+    - can be set at subscription, resource group, service type or other criteria 
+    - when you set this, you also set budget alerts which show up in cost alerts area & send email notification 
+        - can setup advanced actions that suspend activities or modifies resources 
+
+<div style="width:1024px"> 
+
+![Az Cost Management Dashboard](./pictures/Fundamentals_cost-mgt-dashboard.png)
+</div>
+
+### Purpose of Tags
+- stay organized by creating arbitrary tags and managing them yourself! 
+- Can tag metadata such as: 
+    - Resource mgt: specific workloads, environments, biz units & owners 
+    - cost mgt & optimization: group resources to report on costs, allocate cost centers, track budgets & forecast 
+    - ops mgt: group resources according to their criticality to biz ops & sla uptime reqs 
+    - security level: group by security level 
+    - govn & compliance: group by ISO 27001 or other enforcement options 
+    - workload optimization & automation: visualize resources in a complex deployment - with app name or workload 
+- how do I manage resource tags? 
+    - can be added, modified, deleted through CLI, powershell, resource mgr templates, REST or portal 
+    - can use az policy to enforce tagging rules & conventions - (apply prior to creation...)
+    - *NOTE:* resources do not inherit tags from subscriptions and resource groups - meaning you are allowed disparity that can adjust/change as you define
+
+## Features & Tools for Govn & Compliance 
+
+[Decent summary of things that keep your cloud organized](https://www.microsoft.com/en-us/videoplayer/embed/RWyvOc?postJsllMsg=true)
+
+### Purpose of Azure Blueprints 
+- how do you manage configurations of features at scale & enforce settings & policies in new subscriptions - with az Blueprint of course!
+- *basically a template for az policies* - can be used for infra as code by auto-deploy policies
+- std cloud subscription or envm deployments - rather than configure an az policy for each subscription, you can setup an az blueprint for repeatable settings & policies applied by default for subscriptions 
+- Blueprint structure
+    - **Artifacts** : each component in a blueprint 
+        - some artifacts can have no parameters (deploy threat detection on sql servers policy - no additional config)
+        - in general, artifacts contain 1+ parameters you can configure (allowed locations, 1 or more)
+        - parameter value can be defaulted in blueprint, or allow a selection of values within a particular scope... 
+        - artifacts include: role assignments, policy assignments, az resource mgr templates, resource groups 
+- blueprints are versionable, and so you can keep track of which deployment used which config set 
+- the relationship between blueprint definition & what was deployed is preserved - so you can always tie the resource created with the blueprint assigned for audit purposes
+
+### Azure Policy 
+- az policy is a service in az that enables you to create, assign & manage policies that control/audit your resources 
+    - enforce different rules across resource configs so that those configs stay compliant with corporate stds 
+- can define indv policies & groups of policies (initiatives) 
+    - az will assess resources & flag ones that aren't compliant - can also prevent non-compliant resources from being created by setting policy reqs at resource creation
+    - can be set at each level - enabling you to set policies on a specific resource, resource group, subscription, etc... 
+    - *az policies are inherited* and cascade down the az subscription -> RG -> resource
+- have built-in policies & initiative definitions for storage, network, compute, security & monitoring 
+    - I.E. policy for VM size limit, this is in place when you create a new vm or resize it 
+        - assessments are run on ALL VMs (created prior to and after policy) and flagged as appropriate 
+- some policies can remediate non-compliant resources & configs (a resource group should all be tagged with appname="special" - az will auto-apply that tag if missing) 
+    - can also apply exceptions to particular policies so they do not continually flag as non-compliant 
+- integrates with Az DevOps for CI/CD pipelines and pre/post deployment activities 
+- policy initiative: a grouping of related policies for tracking of a larger goal 
+    - Enable monitoring policy involves: monitor unencrypted SQL db, monitor OS vulnerabilities, monitor missing endpoint protection... 
+
+### Resource Locks 
+- Resource lock prevents resources from being accidentally deleted or changed 
+    - prevent accidental deletion/changes (even if you have right privileges) - they are applied REGARDLESS of RBAC permissions
+- Can be applied to subscription, RG or resource and this setting is inherited down the chain 
+- 2 types of resource locks:S
+    - **Delete Resource Lock** : authorized users can read & modify a resource but can't delete it 
+    - **ReadOnly Resource Lock**: authorized users can read a resource but can't delete or update the resource - essentially enforcing a full readonly lock
+- can be managed through az portal, powershell, CLI or resource manager template 
+    - there is a tab in the side panel for Locks 
+- To modify these resources - you must first manually unlock the resource, THEN apply your changes 
+
+### Service Trust Portal 
+- provides access to various content, tools & other resources about MSFT security, privacy & compliance practices 
+- contains details on implementation of controls & processes that protect cloud services & customer data therein 
+- the main menu has several categories: 
+    - Service Trust Portal: quick access hyperlink to the home page 
+    - My Library: can pin/favorite items for quick access, and get updates when those docs are updated 
+    - all docs: landing zone for docs in service trust portal   
+- *these docs are avail for 12 months after publishing or until a new version is released*
 
 ## Managing & Deploying Azure Resources 
 
+### Azure Portal, Shell, CLI, & Powershell 
+- **Azure Portal** : web based unified console browser GUI to manage az 
+    - can build, manage & monitor everything from simple webapps to complex cloud deployments 
+    - create custom dashboards for organized view of resources 
+    - configure accessibility options for optimal exp 
+    - is resilient, and very HA, exists in every az datacenter... 
+- **az cloud shell** 
+    - browser based shell tool that you can create, configure & manage az resources using a powershell or CLI (bash)
+    - as it is browser based, no local install/config req 
+    - authenticated into your az creds, so already knows who you are and your perms 
+- **az power shell** 
+    - shell which users can run commands called command-lets (cmdlets) - these call az REST API to perform mgt tasks in az 
+    - can run simple/complex actions to setup, teardown, or maintain single or groups of resources 
+    - deploy infra from imperative code, can create scripts that auto perform these tasks
+- **az cli**
+    - bash interface instead of powershell, with different syntax 
+
+### Azure Arc
+- az cloud extension that allows compliance & monitoring into hybrid/multi-cloud configs 
+- simplifies govn & mgt by delivering consistent/centralized mgt platform 
+    - manage entire envm by projecting existing non-azure resources into Azure Resource Mgr 
+    - manage multi-cloud & hybrid VMs, K8s clusters & dbs as if they were running in az 
+    - user familiar az services & mgt capabilities regardless of where they live 
+    - continue traditional ITOps, and introduce DevOps to support new cloud/native patterns in envm 
+    - configure custom locations like abstraction layer on top of az arc k8s clusters
+- can manage servers, k8s clusters, az data services, sql server & vm machines 
+
+### Azure Resource Manager (ARM) & ARM templates 
+- **ARM Azure Resource Manager** : deployment & mgt service for az - providing a mgt layer that enables you to create, update, delete resources in az account 
+    - anytime you do anything with a resource, ARM is involved 
+    - ARM receives requests for resources creation/update/delete, it authc & auth the request, then sends it to the az service which handles the action 
+    - allows for consistent results & capabilities because all handled through same API 
+- Benefits: 
+    - manage infra through declarative templates rather than scripts (JSON file) 
+    - deploy, manage & monitor resources for solution as a group, rather than indv 
+    - redploy through SDLC and ensure consistency 
+    - define dependencies btw resources so they are deployed in correct order 
+    - apply access controls to services through RBAC 
+    - apply tags to resources & organize them all 
+    - clarify biling by aggregating costs by subscription/RG or tag 
+- use resource groups & tags to organize stuff 
+    - use policies to ensure tagging is consistent... 
+    - RBAC provides auth security 
+    - resource locks 
+- **ARM Template** - Infra as code through ARM templates 
+    - you can describe resources you want in declarative JSON
+        - it is syntactically verified, then run 
+    - ensures resources are created according to spec, will deploy them in parallel... and az does the rest 
+    - Declarative syntax: create & deploy entire az infra declaratively 
+    - repeatable results for consistency across multiple envm
+    - orchestration: no need to organize dependencies or specify parallel creation, az does that for you 
+    - modular files can break templates into smaller reusable components and then link together at deployment time 
+        - can create a VM stack script and plug that into an envm creation template 
+    - extensibility, can add bash scripts to templates so you can do end-to-end deployment in single template 
+
 ## Monitoring Tools in Azure 
+
+### Azure Advisor 
+- evaluates az resources & makes recs to improve reliability, security, performance, and reduce costs. 
+    - helps you save time on cloud optimization 
+- can setup notifications to alert when new recs arrive 
+    - Reliability : improve continuity of biz apps 
+    - security: detect threats & vulnerabilities 
+    - performance: improve speed of apps
+    - operational excellence: achieve process & workflow efficciency/ deployment best practices, etc
+    - cost: optimize & reduce az spend 
+<div style="width:1024px"> 
+
+![Azure Advisor Dashboard](./pictures/Fundamentals_azure-advisor-dashboard.png) 
+</div>
+
+### Azure Service Health 
+- allows you to check status of az infra & indv resources - uses 3 underlying components
+- **az status**: broad picture of az status globally - informs of service outages and overall health of az cloud, AZs & regions... 
+    - refreshes [2,5,10,30] min with 4 indicators (Good, Info, Warnings, Critical [error] )
+    - public info 
+<div style="width:768px"> 
+
+![Azure status page](./pictures/Fundamentals_az-status-4types.png)
+
+</div>
+
+- **service health**: personalized view of az services & regions, custom alerts, sharable docs about issue details, support during incidents
+    - Azure's way of allowing you to *subscribe* to reports & notifications of azure service issues 
+    - focuses on ones you are using, looking at comms, maintenance activities and other advisories that might affect you and your stuff 
+    - not restricted to a particular subscription, you can choose which subscriptions, regions and services you want to track health info on
+    - you'll get info on outages, planned maintenance, health and security advisories 
+    - custom views, filter by subscription, region & services 
+    - with issue name, subscription, service & region, start time, summary/issue updates, root cause analysis & downloadable PDF reports 
+<div style="width:768px"> 
+
+![Service health dashboard](./pictures/Fundamentals_service-health-personalized-dashboard.png)
+![Service health dashboard](./pictures/Fundamentals_service-health-shareable-documents.png)
+
+</div>
+
+- **resource health**: tailored view of az resources - health of indv cloud resources like a VM instance 
+    - can be paired with az monitor to notify you of availability changes to resources 
+    - tracks min-by-min checks across resources 
+    - I.E. VM gets checked for: is server serving VM running, has OS booting completed, ongoing maintenance, host hardware health issues
+    
+<div style="width:1024px"> 
+
+![Azure resource health example GUI](./pictures/Fundamentals_resource-health-example.png)
+
+</div>
+
+- by using az status, service health & resource health ==> az service health provides complete view of az envm from global az cloud status down to resources you own 
+    - historical alerts are stored for later review and analysis 
+    - provides links to support if you are impacted 
+
+### Azure Monitor & components: Log Analytics, Monitor Alerts & App Insights
+- **Azure Monitor**
+    - platform for collecting data on resources, analyzing that data, visualizing and can perform some actions 
+    - can monitor az resources, on-prem & even certain multi-cloud resources 
+    - below left is a list of sources of logging & metric data that can be collected at various OSI layers (OS, network and app metrics...)
+    - below center is logging & metric data stored in central repo 
+    - below right is the RT / historical perf across each layer of the architecture, can aggregate or drill down and create views for different audiences using PowerBI & ?Kusto? queries
+    - can use all the data to react to critical events in RT - can deliver alerts, use thresholds to trigger auto-scaling... 
+    - has 3 components: log analytics, monitor alerts & app insights
+- **Azure Log Analytics** 
+    - tool in az portal where you write & run log queries on data gatherd by az monitor 
+    - supports simple, comoplex queries and data analysis 
+    - can sort, filter and analyze records... can do statistical analysis, visualize in a chart for trends... 
+- **Azure Monitor Alerts** 
+    - automated way to stay informed when az monitor detects a threshold being crossed 
+    - you setup alert conditions, notification actions and then alerts notifies appropriate group when triggered (can set a severity)
+        - can sometimes attempt a corrective action 
+    - alerts can be set up to monitor logs & trigger gbased on certain log events, or monitor metrics and trigger when certain metrics are crossed 
+- **Application Insights** 
+    - monitors your webapps in az, on-prem or across AWS/GCP cloud 
+    - you install an SDK in your app - or use app insights agent 
+    - tracks: request rates, response times & failure rates 
+        - dependency rates, response times & failure rates to show whether external services are slow 
+        - page views & load perf reported by user browsesrs 
+        - AJAX calls from web pages, rates/resptime & failure
+        - user & session counts 
+        - perf counters from VM and basic OS/mem & network stats 
+        - can even configure to do a periodic test request 
+
+<div style="width:1024px"> 
+
+![Azure Monitor Overview](./pictures/Fundamentals_azure-monitor-overview.svg)
+</div>

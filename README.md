@@ -11,4 +11,6 @@
 - https://query.prod.cms.rt.microsoft.com/cms/api/am/binary/RE4AElB  
 - [Az Network Foundation Services](https://learn.microsoft.com/en-us/training/paths/intro-to-azure-network-foundation-services/) 
 - [Az data analytics fundamentals](https://learn.microsoft.com/en-us/training/paths/azure-data-fundamentals-explore-data-warehouse-analytics/)
-- [az data storage](https://learn.microsoft.com/en-us/training/paths/store-data-in-azure/)
+- [az data storage](https://learn.microsoft.com/en-us/training/paths/store-data-in-azure/) 
+- 3+h [az resource mgt security basics](https://learn.microsoft.com/en-us/training/paths/implement-resource-mgmt-security/)
+- 5+h [az monitor fundamentals](https://learn.microsoft.com/en-us/training/paths/monitor-usage-performance-availability-resources-azure-monitor/) could be good for reporting?

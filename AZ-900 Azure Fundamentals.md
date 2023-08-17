@@ -271,10 +271,7 @@
 
 ### Virtual Networking 
 - Azure virtual networks & subnets enable Azure resources such as VMs webapps & databases to communicate with each other & across the public internet  
-- Extra details from [VNet Service Endpoints](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-service-endpoints-overview)
-    - VNet service endpoint provides secure/direct connectivity to Az services over an optimized route over Azure backbone network 
-    - endpoints are enabled on subnets configured in AZ VNets - can't be used for traffic from on-prem to azure services as they are not reachable from on-prem network 
-    - these allow you to connect an azure resource like Azure SQL Database to an azure VNet  (azure storage, azure SQL, cosmos db, key vault, service bus, datalake, app service) so your vnet can now see the az resource
+
 - Azure Networks Capabilities: 
     - **Isolation & Segmentation** 
         - can create multiple isolated vnets 
@@ -377,6 +374,11 @@
 ### Public/Private Endpoints 
 - **Azure Bastion**: web interface so you can remotely admin Azure VMs using SSH/RDP (think bastion host, or the one you land on to configure the others) 
 - **Azure firewall**: stateful firewall service used to protect VNets 
+- Extra details from [VNet Service Endpoints](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-service-endpoints-overview)
+    - VNet service endpoint provides secure/direct connectivity to Az services over an optimized route over Azure backbone network 
+    - endpoints are enabled on subnets configured in AZ VNets - can't be used for traffic from on-prem to azure services as they are not reachable from on-prem network 
+    - these allow you to connect an azure resource like Azure SQL Database to an azure VNet  (azure storage, azure SQL, cosmos db, key vault, service bus, datalake, app service) so your vnet can now see the az resource
+- Public endpoints are endpoints that receive traffic over the internet - making your network available to attackers 
 
 ## Storage Services 
 

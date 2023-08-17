@@ -14,3 +14,8 @@
 - [az data storage](https://learn.microsoft.com/en-us/training/paths/store-data-in-azure/) 
 - 3+h [az resource mgt security basics](https://learn.microsoft.com/en-us/training/paths/implement-resource-mgmt-security/)
 - 5+h [az monitor fundamentals](https://learn.microsoft.com/en-us/training/paths/monitor-usage-performance-availability-resources-azure-monitor/) could be good for reporting?
+- [AZ data engineer cert](https://learn.microsoft.com/en-us/certifications/azure-data-engineer/)
+- [AZ data fundamentals cert](https://learn.microsoft.com/en-us/certifications/azure-data-fundamentals/?WT.mc_id=Azure_blog-wwl) 
+- [az architect storage infra - learning path](https://learn.microsoft.com/en-us/training/paths/architect-storage-infrastructure/?source=recommendations)
+- [Azure Cost Mgt & Billing](https://learn.microsoft.com/en-us/training/paths/control-spending-manage-bills/)
+- for exam interfaces: aka.ms/examdemo 

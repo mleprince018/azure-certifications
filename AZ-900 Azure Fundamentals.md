@@ -12,7 +12,6 @@
         - physical hosts
         - physical network 
         - physical datacenter 
-    - PaaS: OS owned by datacenter - network/applicaiton & AD is a mix 
     - SaaS: AD is a mix, but applications, network, OS, hosts etc all owned by cloud provider 
     - client is ALWAYS responsible for: 
         - info & data stored in the cloud 
@@ -39,7 +38,7 @@
         - plan and manage your operating costs 
         - run infra more efficiently
         - scale as your business needs to change 
-        - rent your infra s you need it, cloud provider will handle the rest 
+        - rent your infra as you need it, cloud provider will handle the rest 
 
 ## Key Concepts 
 - **HA & Scalability** 
@@ -47,7 +46,7 @@
     - Azure SLA: service level agreement - agreement between
         - % of uptime: a service or application's availability - and what happens when uptime breaks (often monetary payment to make amends) 
         - often 99% & up - requires extra cost & often duplicate infra, etc and the more 9s added generally adds more cost 
-    - Scalability: ability to adjust resources to meet demand 
+    - Scalability: ability to adjust resources (ram/cpu, vms...) to meet demand 
         - grants flexibility to be "waste-free" when allocating compute/storage etc...
         - vertical scaling: increasing/decreasing machine resources 
         - horizontal scaling: adding/removing extra machines 
@@ -71,15 +70,20 @@
         - receive alerts & metrics 
     - You can take action to manage these through: web portal, CLI, APIs or powershell 
 
+- **Elasticity**: configure cloud-based apps to take advantage of auto-scaling (automated scalability)
+- **Agility**: ability to deploy & configure cloud based resources quickly as app reqs change (flexibility to biz req)
+
 ## IaaS, PaaS & SaaS ## 
 - **IaaS Infrastructure as a Service** 
     - most flexibile and provides user with most amount of control (network, ID/AD, OS, install, config, maintenance, patching, updates, sescurity...)
-        - you are literally renting hardware from cloud provider and doing the rest 
+        - you are literally renting hardware from cloud provider and doing the rest
+    - Consumption based (pay as you go) model
     - Makes the most sense for: 
         - Lift n shift migration: Get your applications/services/etc running in the cloud by copy-pasting it there 
         - Testing & development: stand up/shut down environments, builds as needed 
 - **PaaS Platform as a Service** 
     - Middle ground - where licensing/patching/updates for OS & Databases are taken care of 
+    - Consumption based (pay as you go) model
     - Makes the most sense for: 
         - Development framework: complete a dev environment without all dev infra -- reference HA databases so developer doesn't have to maintain an HA database, just code against one 
         - Analytics/Business Intelligence: tools provided with PaaS to allow orgs to analyze & mine their data, finding insights/patterns for various org uses and business purposes 
@@ -88,9 +92,12 @@
         - places most resp on cloud owner and least on client 
         - client is basically only responsible for data they put in, the devices that connect & the users they add 
     - Makes the most sense for: email/messaging, business productivity applications, finance & expense tracking 
+    - generally paid for through subscription 
+<div style="width:1024px"> 
 
 ![Shared Responsibility Model](./pictures/Fundamentals_shared-responsibility.svg)
 
+</div>
 
 # Azure Architecture & Services 
 
@@ -108,10 +115,16 @@
 - Over 100 services, clients typically start with VMs, but you can expand to variety of services - AI/ML, etc... 
 
 ### Azure Accounts
-- **Azure Account**: Top level parent/root
-- **Subscriptions**: (development/marketing/sales...) ?groupings within an account? 
-- **Resource Groups**: group resources together
+- **Azure Account**: is a "user" that can be associated with multiple subscriptions
+- Mgt Org? 
+- **Subscriptions**: (development/marketing/sales...) ?groupings within an account? - are NOT tied to a region
+- **Resource Groups**: group resources together - are tied to a region
     - **Resources**: Azure services and objects 
+
+- An organization can have multiple subscriptions
+- A subscription can have multiple licenses
+- Licenses can be assigned to individual user accounts
+- User accounts are stored in an Azure AD tenant (one instance of Azure AD)
 
 - free account includes 12 months access for free to 25 products, a credit to use within 1 month 
 - Azure student grants 12 months free for certain software dev tools and a credit to use within 12 months 
@@ -125,7 +138,7 @@
 - **Region**: geographical area that contains at least one datacenter(s) that are nearby and networked with a low-latency network 
     - Azure assigns & controls resources within each region to ensure workloads are appropriately balanced 
     - When you deploy a resource - you choose a region to put it in  
-        - NOTE: certain services and types of services (storage, VM sizes, etc...) are only available in certain regions, others are globally standard 
+        - NOTE: certain services and types of services (storage, VM sizes, etc...) are only available in certain regions, others are globally standard  
 - **Availability Zones**: physically separate datacenters within an Azure region 
     - one or more datacenters equipped with indp power, cooling and network... 
     - It's an isolation boundary should 1 zone go down, the other continues working --> Azure works to have 3 AZs in each region for full HA/availability support. 
@@ -142,11 +155,15 @@
     - if extensive outage occurs, one region out of every pair is prioritized for restore 
     - updates are rolled out to one region within a pair at a time to minimize downtime/risk 
     - data resides within same geography (to comply with tax/law enforcement rules) 
+    - *Region Pairs*: each region is paired with another region within the same geography that allows for DR strategies and replication between the two  
+        - allows for Azure-specific updates to go out 1 region at a time 
+        - allows for data to reside within geography for tax & law purposes 
 - **Sovereign Regions**: Azure instances issolated from main instance often for governmental purposes
     - US DoD Central, US Gov Virginia, US Gov Iowa and others 
+    - *Soveriegn regions*: special regions carved out for legal/compliance/govt purposes
 
 ### Management Infra - Resources & Resource Groups & Subscriptions and Management Groups
-- Accounts --> Subscriptions --> Resource Groups --> Resources 
+- Mgt Groups --> Subscriptions --> Resource Groups --> Resources 
 - **Resource**: the building block of Azure, anything you create, provision & deploy  
 - **Resource Groups**: Groupings of resources - any resource must exist within a resource group. 
     - Each resource can only be in one resource group at a time (if you take it out of Resource Group A and put it into B, it is no longer a part of A)
@@ -156,6 +173,8 @@
 
 - **Subscriptions**: a unit of management, billing and scale - just how resource groups organize resources, subscriptions allow you to organize your resource groups and facilitate billing
     - Links to an Azure account which is an ID in Azure AD or directory/domain which azure trusts --> this allows you to provide an authenticated & authorized access to provision & use azure products/services. 
+- Azure by default breaks billing & invoices apart by subscriptions
+    - resource groups can group costs, but they don't generate a separate invoice
 - Subscription Boundaries: configure different billing models and/or different access controls 
     - *Billing boundary*: determines how an Azure account is billed for - can create multiple subscriptions for different billing reqs with different invoices/reports to allow you to organize & manage costs 
     - *Access control boundary*: access-mgt policies applied at subscription level to reflect org structure and billing to different departments or set policies at dept levels 
@@ -165,7 +184,7 @@
     - Org Structures - subscriptions to follow org structure and grant/deny access to org structure 
     - Billing - create subscriptions for billing levels - prod vs dev workloads 
 
-- **Management Groups** : Groupings of subscriptions 
+- **Management Groups** : Groupings of subscriptions to efficiently manage access, policies & compliance for subscriptions
     - All subscriptions within a management group auto-inherit conditions applied to management group
     - allow for enterprise-grade management at scale 
         - hierarchy that applies a policy (limit VM locations to US West Region for PROD, and US East for DR)
@@ -204,10 +223,11 @@
     - Size of VM (purpose, # of cores, RAM) 
     - Storage (Hard drives, SSD, etc) 
     - Networking (VNet, Public IP, Port config...)
+- ?apparently cannot change the AZ of a deployed VM - at least not through the portal? 
 
 ### Virtual Desktop 
 - A desktop & app virtualization service that runs in the cloud - enables you to use a cloud-hosted version of windows from any location 
-    - works across devices, OS, and apps/browsers everywhere 
+    - works across devices, Mac, iOS, Andriod, Linux... OS, and apps/browsers everywhere 
     - centralized RBAC with Azure AD, and can enable multi-factor authc 
     - can separate your data/apps from local hardware (physical laptop) 
 - Multi-session Windows 10 or 11: enables concurrent users on a single VM 
@@ -254,6 +274,7 @@
 - Extra details from [VNet Service Endpoints](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-service-endpoints-overview)
     - VNet service endpoint provides secure/direct connectivity to Az services over an optimized route over Azure backbone network 
     - endpoints are enabled on subnets configured in AZ VNets - can't be used for traffic from on-prem to azure services as they are not reachable from on-prem network 
+    - these allow you to connect an azure resource like Azure SQL Database to an azure VNet  (azure storage, azure SQL, cosmos db, key vault, service bus, datalake, app service) so your vnet can now see the az resource
 - Azure Networks Capabilities: 
     - **Isolation & Segmentation** 
         - can create multiple isolated vnets 
@@ -289,6 +310,7 @@
     - encrypts traffic during untrusted network to prevent malfeasance & ensure safe/secure sharing of info 
 - **VPN Gateway** 
     - One type of VNet Gateway that allows: (A network gateway joins two networks so the devices on one network can communicate with the devices on another network.) 
+    - a service that uses a specific type of VNet Gateway to send encrypted traffic between Azure VNet & on-prem location over Public IP 
         - connecting to on-prem datacenters to VNets through a site-to-site connection 
         - connect indv devices to VNets through a point-to-site connection 
         - connect VNets to other VNets through a network-to-network connection 
@@ -300,6 +322,8 @@
             - route-based VPNs are preferred method for on-premises, they are more resilient to topology changes (creation of new subnets)
             - route-based works best for: Connections between VNets, Point-to-site connections, multi-site connections, coexistence with ExpressRoute 
             - seems like this is the *preferred* choice 
+    - can set up VNet to VNet within Azure
+    - can set up VNet to on-prem through a *site-to-site* or *point-to-site*
 - HA scenarios for VPN
     - **Active/Standby**: default configuration 
         - when planned maintenance occurs connections are interrumpted and restored within a few seconds, uninterrupted can take as much as 90 seconds 
@@ -311,8 +335,10 @@
     - **Zone Redundant Gateways**: can setup VPN Gateways & ExpressRoute gateways in zone-redundant config 
         - ultra extreme resiliency and HA - with physical and logical separation within a region
         - use different resources (Gateway Stock Keeping Units SKUs) & use standard public IP addresses instead of basic Public IP addresses 
+            - essentially select the type of VM & bandwidth... it can handle 
 
 ### Azure ExpressRoute 
+- a different kind of vnet gateway 
 - Extend on-prem network to MSFT cloud datacenter with private connection - connection is called "ExpressRoute Circuit" 
 - can connect offices, datacenters, etc. Each connection has its own expressroute 
 - connectivity can be from any-to-any IP VPN network, a point-to-point Ethernet network, or Virtual cross-connection through a provider 
@@ -346,22 +372,25 @@
     - Security: Azure DNS based on Resource Manager which allows RBAC, activity logs & resource locking (no accidental deletes)
     - Ease of Use: can provide DNS for external services & azure stuff you own, can be managed via CLI and through existing Azure subscription (one-stop-shop)
     - customizable VNets with private domains: can setup custom domains in private VNets, so you don't have to use Azure ones 
-    - Alias record sets: can set alias records
+    - Alias record sets: can set alias records 
 
 ### Public/Private Endpoints 
+- **Azure Bastion**: web interface so you can remotely admin Azure VMs using SSH/RDP (think bastion host, or the one you land on to configure the others) 
+- **Azure firewall**: stateful firewall service used to protect VNets 
 
 ## Storage Services 
 
 ### Azure Storage Accounts 
-
+- storage accounts are a pre-defined endpoint that's accessible across azure GLOBALLY that holds your specified storage object
+- you select the region you want, then the rest of the details below...
 - storage account type determines redundancy, archival, etc... 
 
-|  Type     |   Supported Services  | Redundancy Options |  Usage                   |
+|  Storage Account Type     |   Supported Services  | Redundancy Options |  Usage                   |
 |-----------|-----------------------|--------------------|--------------------------|
 | Standard, general purpose v2 | Blob Storage, Queue Storage, Table storage & Azure files | ALL | Standard storage for blobs, file shares, queues and tables. | 
-| Premium Block Blobs | Blob storage (including data lake) | LRS, ZRS | Premium for block blobs & append blobs - recommended for high Tx or small obj, or low storage latency |
-| Premium file shares | Azure Files | LRS, ZRS | Premium storage for file shares - recommended for HP apps, or storage account that supports Server Message block and NFS file systems. |
-| Premium page blobs | Page blobs ONLY | LRS | Premium storage for page blobs only. |
+| Premium Block Blobs       | Blob storage (including data lake) | LRS, ZRS | Premium for block blobs & append blobs - recommended for high Tx or small obj, or low storage latency |
+| Premium file shares       | Azure Files       | LRS, ZRS | Premium storage for file shares - recommended for HP apps, or storage account that supports Server Message block and NFS file systems. |
+| Premium page blobs        | Page blobs ONLY   | LRS | Premium storage for page blobs only. |
 
 - storage account endpoints
     - must have a unique (in Azure) account name & combo of account name and azure storage endpoint 
@@ -372,9 +401,12 @@
 |-----------------|-----------------------|
 | Blob Storage    |	https://<*storage-account-name*>.***blob***.core.windows.net |
 | Data Lake Storage Gen2    |	https://<*storage-account-name*>.***dfs***.core.windows.net |
-| Azure Files   |	https://<*storage-account-name*>.***file***.core.windows.net |
-| Queue Storage |	https://<*storage-account-name*>.***queue***.core.windows.net |
-| Table Storage   |	https://<*storage-account-name*>.***table***.core.windows.net |
+| Azure Files     |	https://<*storage-account-name*>.***file***.core.windows.net |
+| Queue Storage   |	https://<*storage-account-name*>.***queue***.core.windows.net |
+| Table Storage   |	https://<*storage-account-name*>.***table***.core.windows.net | 
+| Static Website (blob) | https://<*storage-account*>.***web***.core.windows.net |
+
+Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net/*mycontainer*/*myblob*`
 
 ### Azure Storage redundancy 
 - Azure always stores multiple copiess of data for availability & durability 
@@ -435,14 +467,14 @@
     - Best for: images & docs -> browser, storing files for distr access, streaming video & audio, storing data for backup/restore/DR/archival, storing data for analysis 
     - Blob objects can be accessed through their URL using various languages 
     - Azure calls "containers" ~ AWS Bucket
-    - **Blob Storage Tiers** - To manage costs for data storage, you can set a retention period and frequency of access   
+    - **Block Blob Storage Tiers** - To manage costs for data storage, you can set a retention period and frequency of access   
         - Hot: Optimized for storing data that is accessed frequently (website)
-        - Cool: Optimized for data that is infrequently accessed and stored for at least 30 days 
+        - Cool: Optimized for data that is infrequently accessed and stored for at least 30 days  (short term backups & dr data)
         - Cold: rarely accessed data you want to keep for at least 90 days
-        - Archive: data that is rarely accessed and has flexible latency 
+        - Archive: data that is rarely accessed and has flexible latency  - kept for min of 180 days 
         - NOTE: hot & cool can be set at account level, archive isn't avail at account level 
         - NOTE: hot/cool/archive can be set at blob level - during or after upload 
-        - NOTE: Archive offers lowest storage costs, but higher costs to pull data, cool storage is between
+        - NOTE: Archive offers lowest storage costs, but higher costs to pull data, cool storage is between. The min days is there because you can get charged an early deletion penalty 
 - **Azure file share**: managed file shares for sharing data across multiple machines/services (for cloud/on-prem) 
     - Offers Server Message Block (SMB) (accessible by Windows, Linux & macOS) or *NFS* protocol (accessible by Linux & macOS)
     - can be mounted concurrently by cloud or on-prem - can be cached on Windows Servers with Azure File Sync for faster access
@@ -490,7 +522,7 @@
     - can upload/download or copy files between storage accounts
     - can synch files (one direction synch) it will copy files/blobs from source to destination. Does not synch timestamps or other metadata 
 - **Azure Storage Explorer**  
-    - standalone app that provides GUI to manage files/blobs in Az storage account 
+    - standalone desktop app that provides GUI to manage files/blobs in Az storage account 
     - runs on Windows, macOS & Linux - uses AzCopy on the backend to perform uploads to Azure, downloads or movement between accounts 
 - **Azure File Sync** 
     - tool that lets you centralize your files in Azure Files and keep flexibility, perf and compatibility of Windows file server 
@@ -608,6 +640,7 @@
     - can fulfill that with RBAC by defining role templates that can get assigned to users that grant specific levels of access within Mgt Groups, Subscriptions, Resource Groups & specific resources 
     - Management Group (collection of multiple subscriptions) --> subscription --> resource group --> single resource 
     - parent scope is auto-inherited by all child objects 
+    - RBACs are assigned to a "scope" : indv resource or group of resources
 - *RBAC is enforced on any action initiated against an az resource that passes through AZ Resource Manager* 
     - AZ Resource manager is a service that provides a way to organize & secure your cloud resources 
     - AZ Resource manager is Accessible through portal, shell, powershell & cli 
@@ -635,7 +668,7 @@
 </div>
 
 ### Defense-in-Depth 
-- objective: protect info & prevent it from being stolen by unauth users
+- objective: protect info/data & prevent it from being stolen by unauth users by slowing them down layer by layer
 
 **7 Layers of Defense** 
 1. Physical Security - protect computing hardware in datacenter 
@@ -745,6 +778,24 @@
     - you enter your ON-PREM servers, db, storage, network traffic and cost it out 
     - add in assumptions like power & IT labor costs and provides difference of running in Azure 
 
+- Minimizing cost on azure: 
+    - Understand estimated costs prior to deployment - use Pricing/TCO calculator and add only needed resources 
+    - Azure Advisor: watch their recommendations for cost so you can take advantage of savings 
+    - Spending limits: use spending limits to restrict spending through credit limits, or ending the free tier
+        - can look into quotas to limit resources per subscription 
+    - Use reservations to pre-pay for LT resources
+    - Choose low-cost locations & regions 
+    - use offers from Azure 
+    - use MSFT Cost Mgt & Billing tool to view azure bill by account, subscriptions... 
+        - has reports, can integrate with tags, budgets, alerting & recommendations for idle resources 
+    - use tags to ID cost owners 
+    - resize underutilized VMs 
+    - deallocate VMs during off hours: turn off VM, but preserve disks in azure (like turning off your computer)
+        - great for dev/test envm 
+    - delete unused resources, cleaning up after a PoC... 
+    - migrate from IaaS to PaaS
+    - save on licensing or cost effective OS, can even use azure hybrid benefit
+
 ### Describe Azure Cost Mgt Tool 
 - Az is global cloud provider offering global resource provision, can set limits or things to control cost policies
 - Cost Mgt is a reporting & mgt tool that provides tool to quickly check on Az resource costs, create alerts based on resource spend and budgets to automate mgt of resources 
@@ -768,19 +819,54 @@
 - stay organized by creating arbitrary tags and managing them yourself! 
 - Can tag metadata such as: 
     - Resource mgt: specific workloads, environments, biz units & owners 
-    - cost mgt & optimization: group resources to report on costs, allocate cost centers, track budgets & forecast 
-    - ops mgt: group resources according to their criticality to biz ops & sla uptime reqs 
+    - cost mgt & optimization: group resources to report on costs, allocate cost centers, track budgets & forecast (cloud accounting, ROI, cost tracking, budgets, alerts, recurring spend, post implementation optimizations, cost optimization...)
+    - ops mgt: group resources according to their criticality to biz ops & sla uptime reqs - can be done without changing location of resources or subscription 
     - security level: group by security level 
     - govn & compliance: group by ISO 27001 or other enforcement options 
+    - automation: flag for automation or auto-tagging
     - workload optimization & automation: visualize resources in a complex deployment - with app name or workload 
 - how do I manage resource tags? 
     - can be added, modified, deleted through CLI, powershell, resource mgr templates, REST or portal 
     - can use az policy to enforce tagging rules & conventions - (apply prior to creation...)
-    - *NOTE:* resources do not inherit tags from subscriptions and resource groups - meaning you are allowed disparity that can adjust/change as you define
+    - *NOTE:* resources do not inherit tags from subscriptions and resource groups - meaning you are allowed disparity that can adjust/change as you define 
+- Design considerations when coming up with tags: 
+    - naming conventions & taxonomy/schema based on baseline operations/biz requirements 
+    - functional: workload, envm, etc 
+    - classification: data classification, criticality... 
+    - accounting: tags to keep track of costs by project, region, department... 
+    - purpose: business process, revenue stream... 
 
 ## Features & Tools for Govn & Compliance 
 
 [Decent summary of things that keep your cloud organized](https://www.microsoft.com/en-us/videoplayer/embed/RWyvOc?postJsllMsg=true)
+
+### Microsoft Purview 
+- family of data govn, risk and compliance solutions (combining Azure Purview & MSFT 365 Compliance)
+- organizes, protects & manages entire data estate - central data registry
+    - gain visibility into data across org (scan data and auto-classify)
+    - enable access to data, security & risk solutions 
+    - safeguard and manage sensitive data across clouds, apps & endpoints 
+    - manage end-to-end data risks & reg compliance 
+    - empower org to govern in new ways 
+- **Risk & Compliance**: protect sensitive data in msft teams, sharepoint, onedrive, exchange, ID data risks and manage compliance... 
+- **Unified Data governance**: manage data services across on-prem, cloud and SaaS 
+    - cover azure storage, Power BI, ddatabases, file services etc.. 
+    - create an up-to-date map of data estate that includes data classification and end-to=end lineage 
+    - ID sesnsitive data and where it is stored 
+    - create & manage secure envm for data consumers to find data 
+    - generate insights on how data is stored/used 
+- **Components**: 
+    - data map: automate data discovery by providing scanning & classification for assets across data
+        - foundation for purview and data discovery & govn
+        - PaaS captures metadata about enterprise data in analytics/ops systems  
+    - Data catalog: enables data discovery by finding data sources by searching data assets (go through storage accounts...) can classify and ID/tag these
+    - Data sharing: shares data within/between orgs/partners/customers
+    - data estate insights: accesses data estate health through a c-suite dashboard 
+    - Data policy: governs access to data 
+<div style="width:1024px"> 
+
+![Microsoft Purview overview](./pictures/Fundamentals_msft-purview-overview.png)
+</div>
 
 ### Purpose of Azure Blueprints 
 - how do you manage configurations of features at scale & enforce settings & policies in new subscriptions - with az Blueprint of course!
@@ -834,7 +920,7 @@
 ## Managing & Deploying Azure Resources 
 
 ### Azure Portal, Shell, CLI, & Powershell 
-- **Azure Portal** : web based unified console browser GUI to manage az 
+- **Azure Portal** : web based unified console browser GUI to view services/resources, create new, configure them & view reports
     - can build, manage & monitor everything from simple webapps to complex cloud deployments 
     - create custom dashboards for organized view of resources 
     - configure accessibility options for optimal exp 
@@ -854,7 +940,7 @@
 - az cloud extension that allows compliance & monitoring into hybrid/multi-cloud configs 
 - simplifies govn & mgt by delivering consistent/centralized mgt platform 
     - manage entire envm by projecting existing non-azure resources into Azure Resource Mgr 
-    - manage multi-cloud & hybrid VMs, K8s clusters & dbs as if they were running in az 
+    - manage multi-cloud & hybrid VMs, K8s clusters & dbs (SQL Server), Azure data services as if they were running in az 
     - user familiar az services & mgt capabilities regardless of where they live 
     - continue traditional ITOps, and introduce DevOps to support new cloud/native patterns in envm 
     - configure custom locations like abstraction layer on top of az arc k8s clusters
@@ -865,6 +951,7 @@
     - anytime you do anything with a resource, ARM is involved 
     - ARM receives requests for resources creation/update/delete, it authc & auth the request, then sends it to the az service which handles the action 
     - allows for consistent results & capabilities because all handled through same API 
+    - This what the API's from portal or CLI talk to
 - Benefits: 
     - manage infra through declarative templates rather than scripts (JSON file) 
     - deploy, manage & monitor resources for solution as a group, rather than indv 
@@ -887,6 +974,8 @@
     - modular files can break templates into smaller reusable components and then link together at deployment time 
         - can create a VM stack script and plug that into an envm creation template 
     - extensibility, can add bash scripts to templates so you can do end-to-end deployment in single template 
+
+![Azure Resource Manager](./pictures/Fundamentals_arm-azure-resource-manager.png)
 
 ## Monitoring Tools in Azure 
 
@@ -917,6 +1006,7 @@
 
 - **service health**: personalized view of az services & regions, custom alerts, sharable docs about issue details, support during incidents
     - Azure's way of allowing you to *subscribe* to reports & notifications of azure service issues 
+    - health advisories: problems that notify you of avoid service retirements, service interruptions and breaking changes. 
     - focuses on ones you are using, looking at comms, maintenance activities and other advisories that might affect you and your stuff 
     - not restricted to a particular subscription, you can choose which subscriptions, regions and services you want to track health info on
     - you'll get info on outages, planned maintenance, health and security advisories 
@@ -945,8 +1035,14 @@
     - provides links to support if you are impacted 
 
 ### Azure Monitor & components: Log Analytics, Monitor Alerts & App Insights
+<div style="width:1024px"> 
+
+![Azure Monitor Overview](./pictures/Fundamentals_azure-monitor-overview.svg)
+
+
 - **Azure Monitor**
     - platform for collecting data on resources, analyzing that data, visualizing and can perform some actions 
+        - Can trigger autoscaling for example 
     - can monitor az resources, on-prem & even certain multi-cloud resources 
     - below left is a list of sources of logging & metric data that can be collected at various OSI layers (OS, network and app metrics...)
     - below center is logging & metric data stored in central repo 
@@ -961,19 +1057,24 @@
     - automated way to stay informed when az monitor detects a threshold being crossed 
     - you setup alert conditions, notification actions and then alerts notifies appropriate group when triggered (can set a severity)
         - can sometimes attempt a corrective action 
-    - alerts can be set up to monitor logs & trigger gbased on certain log events, or monitor metrics and trigger when certain metrics are crossed 
+    - alerts can be set up to monitor logs & trigger based on certain log events, or monitor metrics and trigger when certain metrics are crossed 
+        - scope/resources + signal (cpu util) + condition (>80%)  ==> alert creation
+
+![Azure Monitor Alerts](./pictures/Fundamentals_az-monitor-alerts.png)
+
 - **Application Insights** 
-    - monitors your webapps in az, on-prem or across AWS/GCP cloud 
+    - monitors & tracks your webapps metrics & health in az, on-prem or across AWS/GCP cloud 
     - you install an SDK in your app - or use app insights agent 
-    - tracks: request rates, response times & failure rates 
+    - you can review how app is performing, or review past data during an incident
+    - tracks live metrics: request rates, response times & failure rates 
         - dependency rates, response times & failure rates to show whether external services are slow 
         - page views & load perf reported by user browsesrs 
         - AJAX calls from web pages, rates/resptime & failure
         - user & session counts 
         - perf counters from VM and basic OS/mem & network stats 
-        - can even configure to do a periodic test request 
+    - can even configure to do a periodic test request to track availability
 
-<div style="width:1024px"> 
+> Application Insights Dashboard 
 
-![Azure Monitor Overview](./pictures/Fundamentals_azure-monitor-overview.svg)
+![Application Insights Dashboard](./pictures/Fundamentals_appInsights_dashboard.png)
 </div>

@@ -300,8 +300,10 @@
         - can link VNets through peering, and enables separate VNets to communicate (even across regions)
         - network traffic between peered networks is private & secured - it travels through MSFT network never connecting to public internet 
         - *User Defined Routing (UDR)* allows you to control routing tables between subnets within a VNet or between VNets
+- Connecting to on-prem network using a VNet gateway - two types: VPN or ExpressRoute
 
 ### Azure VPN 
+
 - a VPN uses an encrypted tunnel within another network 
     - typically deployed to connect 2+ trusted private networks to one another over an untrusted network (typically internet)
     - encrypts traffic during untrusted network to prevent malfeasance & ensure safe/secure sharing of info 
@@ -323,7 +325,7 @@
     - can set up VNet to on-prem through a *site-to-site* or *point-to-site*
 - HA scenarios for VPN
     - **Active/Standby**: default configuration 
-        - when planned maintenance occurs connections are interrumpted and restored within a few seconds, uninterrupted can take as much as 90 seconds 
+        - when planned maintenance occurs connections are interrupted and restored within a few seconds, uninterrupted can take as much as 90 seconds 
     - **Active/Active**: Using BGP routing protocol, you can deploy VPN gateways in an active/active 
         - you assign unique public IPs to each, then create separate tunnels from on-prem device to each IP
         - can be extended by deploying additional VPN devices on-prem 
@@ -378,7 +380,10 @@
     - VNet service endpoint provides secure/direct connectivity to Az services over an optimized route over Azure backbone network 
     - endpoints are enabled on subnets configured in AZ VNets - can't be used for traffic from on-prem to azure services as they are not reachable from on-prem network 
     - these allow you to connect an azure resource like Azure SQL Database to an azure VNet  (azure storage, azure SQL, cosmos db, key vault, service bus, datalake, app service) so your vnet can now see the az resource
+    - A private endpoint is a network interface that uses a private IP address from your virtual network. This network interface connects you privately and securely to a service that's powered by Azure Private Link. By enabling a private endpoint, you're bringing the service into your virtual network.
 - Public endpoints are endpoints that receive traffic over the internet - making your network available to attackers 
+
+![Storage Account Private VNet Endpoint](./pictures/Fundamentals_storage-private-endpoints-overview.jpg)
 
 ## Storage Services 
 
@@ -490,7 +495,7 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
     - block-level storage volumes managed by azure - virtualized for easy management and durable 
 - **Azure Queues**: message queue store for reliable messaging between application components 
     - service for storing large numbers of 64KB messages 
-    - can be tied with Azure Functions to take action nwhen a message is received
+    - can be tied with Azure Functions to take action when a message is received
         - should be able to access from anywhere in the world
 
 ### Data Migration to Azure 
@@ -541,7 +546,7 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
 - directory service that allows you to sign in and access MSFT cloud apps & cloud apps you develop 
 - can also maintain on-prem AD 
     - AD running on Windows Server provides ID & Access Mgt service that's managed by your org 
-- Azure AD is MSFT cloud-based ID & Access Mgt service 
+- Azure AD is MSFT cloud-based ID & Access Mgt service - name change to Azure Entra?
     - you control ID accounts, but MSFT ensures service is available globally 
     - has additional featurs normal on-prem AD doesn't have (monitoring sign in attempts from unexpected locations, devices, etc...)
 
@@ -598,7 +603,7 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
     - Once setup, you can provide something (a pin or finger print) and get authenticated without using a password 
     - Windows Hello for Business : best for info workers that have a designated PC - can use biometric & PIN creds 
         - these can be setup with PKI & SSO for passwordless access
-    - MSFT Authenticator App : can be setup for MFA or to be used ass passwordless option 
+    - MSFT Authenticator App : can be setup for MFA or to be used as passwordless option 
         - sign into platform/browser, match number to authc app, and facial recognition and now you have access!
     - FIDO2 security keys : Fast IDentity Online Alliance helps promote open auth standards WebAuthn is the latest
         - FIDO2 security keys are unphishable stds based passwordless authc by using a security or platform key built into a device 
@@ -626,8 +631,8 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
 
 ### Azure Conditional Access  
 - a tool that AZ AD uses to allow/deny access to resources based on ID signals 
-- this is pre-auth, but post-authc to filter out valid IDs that are requesting the wrong things or from the wrong places
-    - signals being: who the user is, where the user is and what device the user is requesting from. 
+- this is pre-authc to filter out valid IDs that are requesting the wrong things or from the wrong places
+    - signals being: who the user is, their assigned privileges/groups/roles, where the user is and what device the user is requesting from. 
 - allows for more granular MFA - if user is at known location, no MFA. If unexpected, MFA 
 - simple business logic based on user, location, device and requested resource and deciding to allow access/deny/restrict/MFA... 
     - I.E. a high risk location may be blocked entirely 
@@ -764,6 +769,8 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
     - billing zones are a factor in determining cost
     - bandwidth for data moving in & out of azure data centers 
     - in general it's based on certain types of data moving in, outbound data transfers & the geo zone (group of az regions) you are in for ingress, egress & transfer
+    - no cost within AZ, cost between AZs, no cost to bring data in, but cost to push data out of a region (either to another AZ region or download to internet, etc...)
+    - [REVIEW IN DETAIL](https://azure.microsoft.com/en-us/pricing/details/bandwidth/)
 - **Subscription Type** 
     - subscriptions include usage allowances which can affect costs (certain products are free for some period of time...)
 - **Azure Marketplace** 
@@ -935,6 +942,7 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
     - shell which users can run commands called command-lets (cmdlets) - these call az REST API to perform mgt tasks in az 
     - can run simple/complex actions to setup, teardown, or maintain single or groups of resources 
     - deploy infra from imperative code, can create scripts that auto perform these tasks
+    - can be [installed on MacOS](https://learn.microsoft.com/en-us/powershell/azure/install-azps-macos?view=azps-10.2.0)
 - **az cli**
     - bash interface instead of powershell, with different syntax 
 
@@ -1045,7 +1053,7 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
 - **Azure Monitor**
     - platform for collecting data on resources, analyzing that data, visualizing and can perform some actions 
         - Can trigger autoscaling for example 
-    - can monitor az resources, on-prem & even certain multi-cloud resources 
+    - can monitor az resources, on-prem & even certain [multi-cloud resources using Azure Arc](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/scenarios/hybrid/arc-enabled-servers/eslz-management-and-monitoring-arc-server)
     - below left is a list of sources of logging & metric data that can be collected at various OSI layers (OS, network and app metrics...)
     - below center is logging & metric data stored in central repo 
     - below right is the RT / historical perf across each layer of the architecture, can aggregate or drill down and create views for different audiences using PowerBI & ?Kusto? queries

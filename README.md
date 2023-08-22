@@ -8,8 +8,8 @@
 > NOTE: Several years ago - I took the AWS Cloud Practitioner & AWS Solutions Architect. I came into this study & exam with basic knowledge of cloud fundamentals & usage. 
 - Go through each learning path and take [notes](./AZ-900%20Azure%20Fundamentals.md)
 - **Review the study guide and be able to answer all verbally prior to exam!**
-- Take the free [practice exam](https://learn.microsoft.com/en-us/certifications/exams/az-900/practice/assessment?assessment-type=practice&assessmentId=23) twice under 2 separate emails
-- review notes prior to the exam
+- Took the free [practice exam](https://learn.microsoft.com/en-us/certifications/exams/az-900/practice/assessment?assessment-type=practice&assessmentId=23) twice under 2 separate emails
+- Reviewed notes one last time prior to the exam
 
 - **Review of the Exam** 
   - About 50% of the exam is covered by the study guide and if you read through the free azure learning paths (as I did) you will easily cover the basics
@@ -24,6 +24,9 @@
   - If you are experienced with the cloud - definitely take some time to review material as I did and then take the exam - you should know enough to pass. 
   - For those interested in pursuing further certifications, what I really liked about this material more than AWS was how they explained what each core module was, how it worked and it's primary use-cases.
     - this made it much easier to understand and pick up because it was more "organized" than AWS was about 5 years ago 
+
+# References & Overview for Azure Data Fundamentals
+- Main Page: https://learn.microsoft.com/en-us/certifications/exams/dp-900/ 
 
 # References for Future Learning
 - Azure Admin Associate https://query.prod.cms.rt.microsoft.com/cms/api/am/binary/RE4AElB  

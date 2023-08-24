@@ -17,7 +17,15 @@
 **Unstructured Data** : Text, pictures, video, audio, binary files... 
 
 - **Data Stores** : store data in a format to record these details/events/info for further analysis 
-    - generally stored in File Stores or Databases
+    - File Storage (object/block/file system) 
+        - data lakes
+        - file system (NFS)
+        - block (BLOB) storage 
+        - optimized Blob for Data Lake Gen2
+    - Databases
+        - relational DBMS
+        - NoSQL Databases
+        - Analytical Databases 
 
 ## File Storage for data
 - File storage is typically a specific file system, generally a centralized shared file system (often in the cloud) 
@@ -278,6 +286,7 @@ EXEC RenameProduct 201, 'Spanner';
 ### Azure SQL Services 
 - Azure SQL is a collective term for a family of MSFT SQL based dbms
 - SQL Server on VM & Managed Instance have same availability 
+- for Azure SQL Database - you can re-use your existing enterprise license for SQL server
 
 - **SQL Server on Azure VMs**: IaaS solution that virtualizes hardware as a VM running in Azure with installation of SQL server 
     - you pick the SQL Server edition (Enterprise, Standard, Web... free license on a particular OS)
@@ -293,7 +302,7 @@ EXEC RenameProduct 201, 'Spanner';
 
 - [**Azure SQL Managed Instance**](https://learn.microsoft.com/en-us/azure/azure-sql/managed-instance/sql-managed-instance-paas-overview?view=azuresql): PaaS middle option that provides with middle option between IaaS & full PaaS
     - *Use-cases*: general cloud migration to Azure with minimal app changes
-        - if you used linked serviers, service broker (message system to distr work across servers), or db mail - should use managed instance
+        - if you used linked servers, service broker (message system to distr work across servers), or db mail - should use managed instance
         - can be deployed on-prem or in another cloud using Azure Arc
     - *Compatibility*: near 100% compatibility & most on-prem dbs can be migrated with minimal code changes using Azure DB Migration service 
         - can install Data Migration Assistant to check compatibility with this 
@@ -492,3 +501,58 @@ EXEC RenameProduct 201, 'Spanner';
 
 # Explore Data Analytics in Azure 
 
+## Data Warehousing - BI & Analytics
+- large scale DW support BI, usually moving data from transactional data stores into RDBMS with a designed big schema optimized for queries & model dev 
+- Big Data processing involves large volumes of data in multiple formats - which is batch loaded and stored in a data lake where distr processing engines (Apache Spark) are used to process it 
+
+### DW Arch & Process
+![Data Warehousing Process Flow](./pictures/DP-900/modern-data-warehousing.png)
+
+![Data Warehouse ETL](./pictures/DP-900/DW-data-ingestion-pipeline.png)
+1. **Data Ingestion & Processing** 
+    - reading data from transactional data stores, file, RT streams, etc... all get loaded into data lake or DW 
+    - typically performs ETL or ELT so that landed data is optimized for analytical queries 
+    - large scale data ingestion best done using pipelines created through Azure Data Factory or Synapse Analytics 
+    - one or more activities that operate on data reading from input through combinations, manipulations etc... to create final output 
+    - pipeline activities can use built-in or use *linked services* to load and process data - so you can use right tech for each step fo the workflow: 
+        - use Blob store to ingest, then SQL database to run a stored proc, then do data processing in Databricks or HDInsight... 
+
+2. **Analytical Data Store - DW or DL** 
+    - the relational DW itself, filesystem based data lakes, or hybrid arch data lakehouse 
+    - DW is relational DB where data is stored in a schema that's optimized for analytics rather than transactional workloads 
+        - generally stored in star schema format with fact & dimension tables... or expanded into a "snowflake" schema 
+        - great for structured data and SQL analysis 
+    - DL data lake is typically a distr file store with Hi Perf data access 
+        - usually Spark/Hadoop is used to query these stored files for reporting/analytics 
+        - "schema-on-read" where semi-struct data is read for analysis, but doesn't matter the format once stored 
+        - can handle full mix of data without schema write constraints 
+    - Data Lakehouse tries to bring the best of both worlds 
+        - raw data stored as files in DL, and relational storage layer abstracts underlying files exposing them as tables which can be accessed through SQL 
+            - I.E.: SQL Pools in Azure Synapse analytics includ *PolyBase* - allow you to define external tables based on files in a data lake and query them using SQL 
+            - Synapse analytics supports a Lake Database approach where you can use DB Templates to define relational schema of DW - while storing in Data lake 
+        - Delta Lake (databricks approach) adds relational storage capabilities to spark : define tables that enforce schema & transactional consistency... 
+            - it can batch load or handle streaming services & provides a SQL API for queries 
+    - Azure Synapse Analytics: 
+        - e2e solution for data analytics (analytics platform) combining data integrity, scalable HiPerf SQL server with relational DW flexibility of data lake and apache spark 
+        - native support for log & telemetry analytics with Data explorer pools, data pipelines for data ingestion & transformation
+        - through a single UI called Studio - create interactive notebooks with spark code/markdown content... 
+        - can use SQL or Apache Spark to query data
+        - single UNIFIED analytics solution on Azure 
+    - Azure Databricks: 
+        - azure implementation of databricks a comprehensive data analytics solution built on Apache Spark with native SQL capabilities & workload optimized spark clusters for analytics & data science 
+        - interactive UI and cloud extensibility as it runs on multi-cloud
+    - Azure HDInsight: 
+        - OSS framework support for Hadoop etc... Can take more admin work 
+
+3. Analytical Data Model 
+    - while analysts & data scientists can work with data directly in the data store - it's easier to aggregate
+    - Common aggregation of data is "cubes" metrics aggregated across predefined hierarchical dimensions that allow you to drill down/up
+    - relate data values & dimensional entities... 
+4. Data Visualization 
+    - analysts consume data from analytical models & analytical stores to create reports/dashboards etc... 
+    - either self service reports, or go to common dashboard view 
+    - shows trends, comparisons, KPIs, etc.. all with security controls and ability to export & share and explore 
+
+## RT Analytics 
+
+## Data Visualization

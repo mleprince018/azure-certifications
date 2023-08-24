@@ -1,4 +1,5 @@
 # Azure CLI #
+[Main Azure Doc Page](https://learn.microsoft.com/en-us/cli/azure/)
 
 `az interactive` - gives you a easy way for CLI to auto-complete your typing 
 

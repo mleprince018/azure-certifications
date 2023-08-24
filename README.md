@@ -3,6 +3,7 @@
 # References & Overview for Azure Fundamentals
 - Main page with learning paths and link to practice exam: https://learn.microsoft.com/en-us/certifications/azure-fundamentals/ 
 - Study guide: https://learn.microsoft.com/en-us/certifications/resources/study-guides/AZ-900 
+- [My notes I used to pass the exam](./AZ-900%20Azure%20Fundamentals.md)
 
 ## My Study Path & Exam Review 
 > NOTE: Several years ago - I took the AWS Cloud Practitioner & AWS Solutions Architect. I came into this study & exam with basic knowledge of cloud fundamentals & usage. 
@@ -27,6 +28,7 @@
 
 # References & Overview for Azure Data Fundamentals
 - Main Page: https://learn.microsoft.com/en-us/certifications/exams/dp-900/ 
+- [My notes I used to pass the exam](./DP-900%20Azure%20Data%20Fundamentals.md)
 
 # References for Future Learning
 - Azure Admin Associate https://query.prod.cms.rt.microsoft.com/cms/api/am/binary/RE4AElB  

@@ -393,7 +393,7 @@ EXEC RenameProduct 201, 'Spanner';
 - Gen1 is a separate service for hierarchical data storage for analytical data lakes that allows you to work with struct, semi-struct & unstruct data in files
 - Gen2 is integrated into azure storage -> now can use blob storage and cost control policies of storage tiers and hierarchical file system capabilities 
 - Hadoop, Azure DB, Synapse analytics can mount a distr file system in Az Data Lake Store Gen2 and use it to process huge volumes of data 
-- to create it, you MUST enable **Hierarchical Namespace** option of azure storage account either upon creation, or "upgrading" the storage account 
+- to create it, you MUST enable **Hierarchical Namespace** option & create a blob container in the azure storage account either upon creation, or "upgrading" the storage account 
     - upgrading/altering a storage account to support hierarchical namespace is NOT reversible, once done, you are stuck with it 
     - from [hierarchical namespace](https://learn.microsoft.com/en-us/azure/storage/blobs/data-lake-storage-namespace): appears to enable file system setup of directories UNDER a container - unlike standard blob storage 
 
@@ -405,6 +405,7 @@ EXEC RenameProduct 201, 'Spanner';
 - file shares enable you to store file on one computer and grant access to that file to users & apps running on other machines 
     - works great for LAN, but doesn't scale well if users are spread out across geography 
 - Azure Files creates a cloud-based NFS to make files available to a broad set of users 
+    - NOT to be confused with File Synch which extends Azure File Storage so that on-prem files can be shared more easily with users at other sites 
     - hosting in Azure allows you to eliminate hardware costs, maintenance overhead and benefit from HA & scalable cloud storage 
 - File storage is one of the types of storage accounts & data can be distr across any # of file shares
 - max limit is 100 TB per storage account, max size of a single file is 1 TB (can set quota limits below that), max 2000 connections per shared file 
@@ -426,8 +427,68 @@ EXEC RenameProduct 201, 'Spanner';
     - partitions are indp of one another, and can grow/shrink as indv units
     - no limit to # of partitions 
     - searching data can involve partition key - allows you to narrow down vol of data to be reviewed and can reduce I/O to locate data 
-- 
 
 ![Azure Tables](./pictures/DP-900/azure-blob-storage-structure.png)
 
+## Cosmos DB Fundamentals 
+![Cosmos DB](./pictures/DP-900/azure-cosmos-db-overview.png)
+- relational database restrictions can be a PITA - so can use NoSQL db for more flexibility and store a variety of info
+    - store documents, graphs, key-values, and column family
+- CosmosDB is the HA, globally scalable NoSQL DBMS 
+
+### Basics of Cosmos DB
+- supports multiple APIs that allow devs to use semantics of many kinds of data store to work with it 
+    - internal data structure is abstracted allowing for simpler & more familiar store/query APIs 
+- uses indexes & partitioning to provide fast r/w perf and can scale to massive volumes 
+- *enable multi-region writes* so that you can globally distr your data and users can each work with data in their local replica 
+    - need to adding regions to your choice so CosmosDB 
+- By default - Cosmos DB
+    - allocates space in a container for your partitions that can be max 10 GB each 
+    - indexes are created & maintained automatically 
+    - foundational service that is regularly used by MSFT and mission critical 
+
+- **Use-cases**: [highly scalable global NoSQL DBMS](https://learn.microsoft.com/en-us/azure/cosmos-db/use-cases)
+    - IOT & Telematics: systems usually dump data at regular intervals => Cosmos DB can handle big volume writes 
+        -  Data can be then fed to downstream analytics (ML, Azure HDInsight & PowerBI)
+        - can process data in RT using Azure Functions as it arrives 
+    - Retail & Marketing: MSFT uses Cosmos DB for its own e-commerce platforms for Windows Stores & XBox Live
+        - storing catalog data & event sourcing for processing pipelines 
+    - Gaming: db tier is crucial for gaming - graphics processing done locally, but use cloud to deliver customized content 
+        - in-game stats, social media integration, leaderboards... and need millisecond latencies for r/w with high vol spikes for releases/specials.. 
+    - Web & Mobile Apps: storing & modeling social interactions, integrating with 3rd party, enriching UI... 
+
+### Cosmos DB APIs 
+- can support both relational / non-relational workloads & you can migrate PSQL, MongoDB & Apache Cassandra to it 
+- when you create Cosmos DB, you select a db engine you want to use
+- **Cosmos DB for NoSQL**: MSFT native non-relational service - manages data in JSON doc format and allows SQL syntax to manage data 
+    - fast, flexible dev with SQL & client libraries for .NET, javascript, python & java
+- **Cosmos DB for MongoDB**: popular OSS db which data is stored in Binary JSON (BSON) 
+    - great for migrating from MongoDB 
+    - can use MQL: compact, obj oriented syntax where devs use objects to call methods (dot operators like js `db.products.find({id: 123})`)
+- **Cosmos DB for PSQL**: native PSQL globally distr db that auto shards data so you can build highly scalable apps  
+    - as you grow - this automatically can scale up 
+    - can even run as a relational dbms
+- **Cosmos DB for Table**: Work with Azure Table Storage using the key-value stores 
+    - can enhance scalability & perf from a traditional table  
+- **Cosmos DB for Apache Cassandra**: OSS db with column family struct where each row doesn't have to have the same cols
+    - great for migrating apache cassandra over to azure
+- **Cosmos DB for Apache Gremlin**: data in a graph structure
+    - entities are defined as vertices that form nodes in a connected graph 
+    - includes functions to operate on vertices & edges allowing you to CRUD graph data 
+
+- When creating Cosmos DB you need to pick between Provisioned Throughput or Serverless 
+    - **Provisioned Throughput** 
+        - this is your global traffic and guaranteed performance - best for sustained traffic requiring predictable perf
+        - billing is done through Request Units (RUs) a throughput that you set (this is autoscalable)
+        - Billed per HOUR on the RUs you reserved, regardless of how many consumed 
+        - NO limit of storage per container
+    - **Serverless** 
+        - budget option for intermittent/unpredictable traffic that stays within normal bounds
+        - runs db ops against containters so you don't dedicate provisioned capacity 
+        - ONLY runs in ONE region, has 1 TB limit of storage per container 
+        - slower reads & writes
+        - *billed only on RUs consumed* 
+- to enable globally distr users their own local replica of cosmost
+
 # Explore Data Analytics in Azure 
+

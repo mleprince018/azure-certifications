@@ -203,7 +203,7 @@
     - key advantage is use of tables, an intuitive, efficient and flexible way to store and access structured info 
 - simple, yet powerful is used for all sorts of needs - tracking inventories, mission critical systems... etc 
 
-## Relational Data 
+## Relational Data Concepts 
 - Model collections of entities from the real world as tables - generally objects & events
     - each row is a particular instance of an object or event
     - each column is an attribute or piece of information that describes or provides context around the obj/event 
@@ -257,7 +257,7 @@ CREATE PROCEDURE RenameProduct
 	@ProductID INT,
 	@NewName VARCHAR(20)
 AS
-UPDATE Product
+UPDATE Product 
 SET Name = @NewName
 WHERE ID = @ProductID;
 
@@ -266,9 +266,168 @@ EXEC RenameProduct 201, 'Spanner';
 - **Indexes** : help search for data in a table ~ back of a book with shortlist of references and the page you need to go to, makes it much faster to find info needed 
     - you specify a column from the table and the index contains a copy of this data in a sorted order with pointers to the corresponding rows in the table 
     - when you run a query with WHERE - it can fetch data faster using the index rather than scanning row by row 
+    - best used on LARGE tables where a particular column is regularly queried 
+    - BUT indexes are updated upon insert, update & delete operations, if you have too many it can slow those operations down 
+    - need to strike a balance between indexing for query speed and write speed 
 
-![Index Visual](./pictures/DP-900_Index_Pictoral.png)
+![Index Visual](./pictures/DP-900/Index_Pictoral.png)
+
+## Relational DBMS in Azure 
+- in Azure, they can offer DBMS as PaaS so you can pay for Azure to manage security, tuning, perf, scalability, HA... 
+
+### Azure SQL Services 
+- Azure SQL is a collective term for a family of MSFT SQL based dbms
+- SQL Server on VM & Managed Instance have same availability 
+
+- **SQL Server on Azure VMs**: IaaS solution that virtualizes hardware as a VM running in Azure with installation of SQL server 
+    - you pick the SQL Server edition (Enterprise, Standard, Web... free license on a particular OS)
+    - *Use-cases*: Great for lift n shift migrations OR when you need FULL control over all aspects of server & db config OR rapid dev & test of ideas without on-prem, non-prod SQL server 
+    - *Compatibility*: Fully compatible with on-prem MS SQL enabling lift n shift without changes 
+    - *Tech Stack*: MS SQL DBMS installed on a single VM - can run multiple DB on that VM 
+    - *Owner Responsibility*: you MUST manage all aspects from OS on up - all dbms updates, configs, backups etc... 
+    - mimics on-prem MSFT SQL - just running in Azure 
+        - can be used to extend to a hybrid cloud model by extending apps & databases into the cloud 
+        - you have full admin rights over DBMS & OS 
+        - easy vertical scaling add memory, CPU, disk... 
+    - can use same set of server products, dev tools & expertise across envm 
+
+- [**Azure SQL Managed Instance**](https://learn.microsoft.com/en-us/azure/azure-sql/managed-instance/sql-managed-instance-paas-overview?view=azuresql): PaaS middle option that provides with middle option between IaaS & full PaaS
+    - *Use-cases*: general cloud migration to Azure with minimal app changes
+        - if you used linked serviers, service broker (message system to distr work across servers), or db mail - should use managed instance
+        - can be deployed on-prem or in another cloud using Azure Arc
+    - *Compatibility*: near 100% compatibility & most on-prem dbs can be migrated with minimal code changes using Azure DB Migration service 
+        - can install Data Migration Assistant to check compatibility with this 
+        - uses Az AD to perform logins with a user/pass and can use Az AD so your computer is trusted and you only need to login once 
+    - *Tech Stack*: Managed Instance can support multiple dbs, can use instance pools to share resources across smaller instances 
+    - *Owner Responsibility*: Azure will perform auto software updates, backups, recovery, db monitoring and other general tasks. You control security & resource allocation for db
+    - managed instances rely on Azure services for the automated tasks it performs: Azure Storage for backups, Azure Event Hubs for telemetry, Azure AD for authc, Azure Key Vault for data encryption... 
+        - all comms are encrypted using signed certs, they validate trustworthiness of servers talking to them through cert lists and has a revokation/black list
+    - enables sys admin to spend less time on admin tasks as service performs or simplifies those tasks for you 
+        - OS & DBMS software install, patching, instance vertical scale up/down, config, backups, DB replication, HA config & monitoring/health 
+    
+- **Azure SQL Database**: full PaaS designed for cloud
+    - *Use-cases*: best for new app dev in the cloud that needs latest stable SQL Server features, apps that require HA, systems with variable load that need to scale up/down, migrate apps that have low impact on db adjustments... 
+    - *Compatibility*: supports core db capabilities, some features of on-prem are not available 
+    - *Tech Stack*: can be setup as a *single* db in dedicated server, or an *elastic pool* to share resources across multiple dbs and take advantage of on-demand scalability 
+    - *Owner Responsibility*: ?just write queries? 
+    - you create a managed dbms and then deploy your databases on that server - SQL database is a construct that acts as central admin point for single or pooled dbs, logins, firewall, audit, threat detection & failover... 
+        - Single Database: quickly setup & run a SQL server DB - create a db server and access db through this server 
+            - since azure manages the server, all you do is configure db, create tables and fill with data
+            - can vertically scale 
+            - can be setup as a "serverless" config - where MSFT creates its own server which might be shared with other tenants and scales up/down as needed 
+        - Elastic Pool: now runs multiple databases on the same resources (memory, data storage space and processing power - a "pool" of resources) 
+            - cost effective way of managing multiple dbs with varied usage
+        - Database server:  a way to manage groups of single dbs & elastic pools 
+    - best option for low cost with minimal admin - not fully compatible with on-prem installs, but you can run Data Migration Assistant to see 
+    - Az auto updates & patches SQL server software so you are always running latest
+        - Az allows easy scale up/down of server without upgrade... 
+        - service provides HA guarantees 99.995% with point-in-time restore and DR replication to other AZ regions 
+        - advanced threat protection and security with vulnerability assessments, can detect anomalous activities and monitor db for suspicious activities... 
+        - auditing tracking with extensive logs for reg compliance, and tracking db activities
+        - securely encrypt data at rest or when transferred 
+- **Azure SQL Edge**: SQL engine optimized for IOT that needs to work with streaming time-series data 
+
+### Azure DBMS for OSS (MySQL, MariaDB & PostgreSQL)
+- popular OSS rdbms - hosting in Azure you get these benefits: 
+    - HA config by default 
+    - predictive performance 
+    - pay as you go pricing 
+    - easy vertical scaling up/down 
+    - securing data at rest/in-motion 
+    - auto backup & point-in-time restore for 35 days 
+    - enterprise grade security and compliance 
+
+- **Azure DB for MySQL** : a PaaS implementation of the community edition
+    - MySQL itself began as simple OSS DBMS that got used in LAMP stack - popularized by Facebook & has community, std & enterprise editions
+    - includes HA config at no additional cost, scalability as needed, automated backups with point-in-time recovery, & you only pay for what you use 
+    - provides connection security for firewall, SSL, and can set max # of connections, timeouts, lock modes, etc 
+    - just like Az SQL Db - don't have to do hardware, network, VM, OS or dbms patching... 
+        - you WON'T be able to perform certain security & admin features as Azure performs those on your behalf 
+- **Azure DB for MariaDB** : a PaaS implementation of the community edition 
+    - MariaDB itself is newer dbms from MySQL creators that's been rewritten to optimize performance and compatibility with Oracle 
+    - one added capability is temporal data - table can hold several versions of data allowing an app to query data as it appeared sometime in the past 
+    - Azure does full management and controlling of the dbms - requiring next to 0 admin
+- **Azure DB for PostgreSQL** : a PaaS implementation of Postgresql 
+    - PostgreSQL itself is hybrid relational-object db, can use relational tables or custom data types - uses pgsql
+    - dbms is extensible and you can add code modules, and can store and manipulate geometric data such as lines, circles & polygons
+    - *some features aren't available* - primarily with extensions to db: writing stored procs in languages other than pgsql and interacting with OS 
+        - core set is available 
+    - Deployment options: 
+        - single server - default 1 dbms on a VM
+        - Azure DB for PosstgreSQL Flexible server - is a more flexible PaaS offering with high config/customization controls 
+        - Azure ARC enabled PSQL 
+    - Azure Cosmos DB for PSQL - a doc db store for PSQL
+    - pgAdmin can be used to manage/monitor PSQL db, and can be used to connect to Azure DB for PSQL - but you can't do backup/restore as that's managed by Az now
+    - stores audit trail of querires run in db called `azure_sys` and can query the `query_store.qs_view` table to view it and monitor queries run 
+
+![Azure SQL Comparison](./pictures/DP-900/AzureSQL-comparison.png) 
 
 # Explore Non-Relational Data in Azure 
+- many software apps need to store data, when not in relational databases using SQL, there are many options
+## Azure Blob Storage 
+![Blob Storage Structure](./pictures/DP-900/azure-blob-storage-structure.png)
+- a service that enables you to store massive amounts of unstructured data as BLOBs in the cloud 
+    - efficient way to store data files in a format optimized for cloud based storage that apps can r/w to them using APIs
+- Blobs are stored in containers - they are a convenient way of grouping related blobs together and assigning ACLs 
+- Within a container, you can organize blobs in a hierarchy of virtual folders 
+    - but really it's just a long text name with '/' as an arbitrary delimiter ! Spelling Matters ! 
+    - because these are not true "folders" you cannot perform bulk actions on these or control access to these "folders" 
+### Types of Blobs
+- **Block Blobs**: handled as a set of blocks that range in size up to 100MB sized blocks 
+    - can contain up to 50k blocks, providing max size of over 4.7 TB 
+    - block is smallest amount of data that can be r/w as a indv unit 
+    - used for discrete, large binary obj that change infrequently 
+- **Page Blobs**: a collection of fixed size 512 byte pages 
+    - optimized to support random r/w ops and can fetch and store data for a single page if necessary 
+    - can hold a max of 8 TB of data
+    - can be used as virtual disk storage for VMs 
+- **Append Blobs**: block blob optimized for appends
+    - you can only add blocks to the end of an append blob, updating or deleting existing blocks isn't supported 
+    - blocks can vary in size up to 4 MB, max size is 195 GB 
+
+- Storage tiers of Hot, Cool & Archive... 
+- can create lifecycle mgt policies for blobs within a storage account to automatically move from Hot -> Cool -> Archive as it is used.
+    - can even set a delete policy 
+
+## Azure DataLake Storage Gen2 
+- Gen1 is a separate service for hierarchical data storage for analytical data lakes that allows you to work with struct, semi-struct & unstruct data in files
+- Gen2 is integrated into azure storage -> now can use blob storage and cost control policies of storage tiers and hierarchical file system capabilities 
+- Hadoop, Azure DB, Synapse analytics can mount a distr file system in Az Data Lake Store Gen2 and use it to process huge volumes of data 
+- to create it, you MUST enable **Hierarchical Namespace** option of azure storage account either upon creation, or "upgrading" the storage account 
+    - upgrading/altering a storage account to support hierarchical namespace is NOT reversible, once done, you are stuck with it 
+    - from [hierarchical namespace](https://learn.microsoft.com/en-us/azure/storage/blobs/data-lake-storage-namespace): appears to enable file system setup of directories UNDER a container - unlike standard blob storage 
+
+![DL Storage Gen2](./pictures/DP-900/azure-data-lake-storage-structure.png)
+> NOTE THE HIERARCHICAL NAMESPACE - DIFFERENT FROM PLAIN BLOB STORAGE 
+
+
+## Azure Files 
+- file shares enable you to store file on one computer and grant access to that file to users & apps running on other machines 
+    - works great for LAN, but doesn't scale well if users are spread out across geography 
+- Azure Files creates a cloud-based NFS to make files available to a broad set of users 
+    - hosting in Azure allows you to eliminate hardware costs, maintenance overhead and benefit from HA & scalable cloud storage 
+- File storage is one of the types of storage accounts & data can be distr across any # of file shares
+- max limit is 100 TB per storage account, max size of a single file is 1 TB (can set quota limits below that), max 2000 connections per shared file 
+- after you've created a storage account, you can upload through Az Portal, AzCopy or Az File Synch 
+- **Standard Tier**: HDD hardware **Premium Tier**: SSDs - higher throughput for extra $
+- NFS Protocol used by linux/macOS -> requires Premium tier storage and VNET through which access can be controlled 
+- SMB (server message block) for common connections
+
+## Azure Tables 
+- a NoSQL storage solution that uses tables containing key/value data items - *NOT like a relational db table*
+- enables storage of semi-struct data
+- The unique KEY in the table is: (Partition key & row key) 
+    - items in partition are stored in row key order 
+    - allows an app to perform point queries that ID a single row & range queries that fetch a block of rows in a partition 
+- when you modify data, a timestamp col records dttm of modification made - after that, any other columns needed are entirely up to the user
+- No concept of FKs, relationships, stored procs, views... that come with relational db 
+    - this is just pure denormalized data
+- To enable fast access - az table splits table into partitions - grouping related rows on a common property or partition key  
+    - partitions are indp of one another, and can grow/shrink as indv units
+    - no limit to # of partitions 
+    - searching data can involve partition key - allows you to narrow down vol of data to be reviewed and can reduce I/O to locate data 
+- 
+
+![Azure Tables](./pictures/DP-900/azure-blob-storage-structure.png)
 
 # Explore Data Analytics in Azure 

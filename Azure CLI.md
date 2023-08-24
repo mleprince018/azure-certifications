@@ -119,8 +119,13 @@ default-allow-ssh  1000        22      Allow
 allow-http         100         80      Allow
 ```
 
-
  - use the '.' to traverse down the list to indv child The [*] allows you to pick up all the children for a particular thing
+
+# Helpful Tips 
+
+- Use below to grab the cloudshell IP address 
+`curl -s checkip.dyndns.org | sed -e 's/.*Current IP Address: //' -e 's/<.*$//'`
+
 # SAS Install 
 > in the destination file, find the regexp and if there, replace with the line value - brilliance of Erwan 
 ```

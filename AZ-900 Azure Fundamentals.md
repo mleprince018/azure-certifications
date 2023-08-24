@@ -95,7 +95,7 @@
     - generally paid for through subscription 
 <div style="width:1024px"> 
 
-![Shared Responsibility Model](./pictures/Fundamentals_shared-responsibility.svg)
+![Shared Responsibility Model](./pictures/AZ-900/shared-responsibility.svg)
 
 </div>
 
@@ -130,7 +130,7 @@
 - Azure student grants 12 months free for certain software dev tools and a credit to use within 12 months 
 - Learn exercises use a temp subscription called a sandbox that will clean up resources after you've completed the exercise 
 
-![Account Scope Groupings](./pictures/Fundamentals_account-scope-groupings.png)
+![Account Scope Groupings](./pictures/AZ-900/account-scope-groupings.png)
 
 ### Physical Infra - Regions & AZs 
 - Physically Azure is a set of datacenters spread across the globe 
@@ -192,7 +192,7 @@
     - Capabilities: CAN be nested 
     - Restrictions: a tree structure that goes 6 deep (not including head) and doesn't allow one branch to have 2 parents, max 10k mgt groups under a single directory   
 
-![Management Groups & Subscriptions](./pictures/Fundamentals_management-groups-subscriptions.png) 
+![Management Groups & Subscriptions](./pictures/AZ-900/management-groups-subscriptions.png) 
 
 ## Compute & Networking Services 
 ### Virtual Machines in Azure
@@ -382,8 +382,10 @@
     - these allow you to connect an azure resource like Azure SQL Database to an azure VNet  (azure storage, azure SQL, cosmos db, key vault, service bus, datalake, app service) so your vnet can now see the az resource
     - A private endpoint is a network interface that uses a private IP address from your virtual network. This network interface connects you privately and securely to a service that's powered by Azure Private Link. By enabling a private endpoint, you're bringing the service into your virtual network.
 - Public endpoints are endpoints that receive traffic over the internet - making your network available to attackers 
+<div style="width:1024px"> 
 
-![Storage Account Private VNet Endpoint](./pictures/Fundamentals_storage-private-endpoints-overview.jpg)
+![Storage Account Private VNet Endpoint](./pictures/AZ-900/storage-private-endpoints-overview.jpg)
+</div>
 
 ## Storage Services 
 
@@ -580,7 +582,7 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
         - can be chained with on-prem AD --> Azure AD connect --> Azure AD --> Azure AD DS (managed service) {opposite direction from diagram below}
 <div style="width:1024px"> 
 
-![Azure AD DS Synching](./pictures/Fundamentals_azure-active-directory-sync-topology.png)
+![Azure AD DS Synching](./pictures/AZ-900/azure-active-directory-sync-topology.png)
 </div>
 
 ### Azure Authc Methods (password, SSO, MFA, passwordless)
@@ -626,7 +628,7 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
     - then set up guest users with appropriate access, and have an elevated guest user certify other guest users prior to access... 
 <div style="width:512px"> 
 
-![External Identities accessing Azure](./pictures/Fundamentals_azure-active-directory-external-identities.png)
+![External Identities accessing Azure](./pictures/AZ-900/azure-active-directory-external-identities.png)
 </div>
 
 ### Azure Conditional Access  
@@ -656,7 +658,7 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
         - meaning it will grant you the TOTAL of allowable actions defined by your roles assigned 
         - I.E. contributor role at subscription, but reader on resource group -> still get ability to create resources within that resource group. 
 
-![Azure RBAC Hierarchy vs Roles](./pictures/Fundamentals_role-based-access-scope.png)
+![Azure RBAC Hierarchy vs Roles](./pictures/AZ-900/role-based-access-scope.png)
 
 ### Zero Trust Model 
 - a security model that assumes worst case scenario and protects resources with that expectation AKA verify everything
@@ -671,7 +673,7 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
 
 <div style="width:768px"> 
 
-![Zero Trust Picture](./pictures/Fundamentals_zero-trust.png)
+![Zero Trust Picture](./pictures/AZ-900/zero-trust.png)
 </div>
 
 ### Defense-in-Depth 
@@ -702,7 +704,7 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
         - stored in SaaS apps 
         - managed through cloud storage 
 
-![Defense-in-Depth Layers](./pictures/Fundamentals_defense-depth.png)
+![Defense-in-Depth Layers](./pictures/AZ-900/defense-depth.png)
 
 ### MSFT Defender for Cloud 
 - Azure native Monitoring tool for security posture mgt & threat protection 
@@ -821,7 +823,7 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
 
 <div style="width:1024px"> 
 
-![Az Cost Management Dashboard](./pictures/Fundamentals_cost-mgt-dashboard.png)
+![Az Cost Management Dashboard](./pictures/AZ-900/cost-mgt-dashboard.png)
 </div>
 
 ### Purpose of Tags
@@ -874,7 +876,7 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
     - Data policy: governs access to data 
 <div style="width:1024px"> 
 
-![Microsoft Purview overview](./pictures/Fundamentals_msft-purview-overview.png)
+![Microsoft Purview overview](./pictures/AZ-900/msft-purview-overview.png)
 </div>
 
 ### Purpose of Azure Blueprints 
@@ -985,7 +987,7 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
         - can create a VM stack script and plug that into an envm creation template 
     - extensibility, can add bash scripts to templates so you can do end-to-end deployment in single template 
 
-![Azure Resource Manager](./pictures/Fundamentals_arm-azure-resource-manager.png)
+![Azure Resource Manager](./pictures/AZ-900/arm-azure-resource-manager.png)
 
 ## Monitoring Tools in Azure 
 
@@ -1000,7 +1002,7 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
     - cost: optimize & reduce az spend 
 <div style="width:1024px"> 
 
-![Azure Advisor Dashboard](./pictures/Fundamentals_azure-advisor-dashboard.png) 
+![Azure Advisor Dashboard](./pictures/AZ-900/azure-advisor-dashboard.png) 
 </div>
 
 ### Azure Service Health 
@@ -1010,7 +1012,7 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
     - public info 
 <div style="width:768px"> 
 
-![Azure status page](./pictures/Fundamentals_az-status-4types.png)
+![Azure status page](./pictures/AZ-900/az-status-4types.png)
 
 </div>
 
@@ -1024,8 +1026,8 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
     - with issue name, subscription, service & region, start time, summary/issue updates, root cause analysis & downloadable PDF reports 
 <div style="width:768px"> 
 
-![Service health dashboard](./pictures/Fundamentals_service-health-personalized-dashboard.png)
-![Service health dashboard](./pictures/Fundamentals_service-health-shareable-documents.png)
+![Service health dashboard](./pictures/AZ-900/service-health-personalized-dashboard.png)
+![Service health dashboard](./pictures/AZ-900/service-health-shareable-documents.png)
 
 </div>
 
@@ -1036,7 +1038,7 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
     
 <div style="width:1024px"> 
 
-![Azure resource health example GUI](./pictures/Fundamentals_resource-health-example.png)
+![Azure resource health example GUI](./pictures/AZ-900/resource-health-example.png)
 
 </div>
 
@@ -1047,7 +1049,7 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
 ### Azure Monitor & components: Log Analytics, Monitor Alerts & App Insights
 <div style="width:1024px"> 
 
-![Azure Monitor Overview](./pictures/Fundamentals_azure-monitor-overview.svg)
+![Azure Monitor Overview](./pictures/AZ-900/azure-monitor-overview.svg)
 
 
 - **Azure Monitor**
@@ -1070,7 +1072,7 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
     - alerts can be set up to monitor logs & trigger based on certain log events, or monitor metrics and trigger when certain metrics are crossed 
         - scope/resources + signal (cpu util) + condition (>80%)  ==> alert creation
 
-![Azure Monitor Alerts](./pictures/Fundamentals_az-monitor-alerts.png)
+![Azure Monitor Alerts](./pictures/AZ-900/az-monitor-alerts.png)
 
 - **Application Insights** 
     - monitors & tracks your webapps metrics & health in az, on-prem or across AWS/GCP cloud 
@@ -1086,5 +1088,5 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
 
 > Application Insights Dashboard 
 
-![Application Insights Dashboard](./pictures/Fundamentals_appInsights_dashboard.png)
+![Application Insights Dashboard](./pictures/AZ-900/appInsights_dashboard.png)
 </div>

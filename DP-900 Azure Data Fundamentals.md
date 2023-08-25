@@ -506,9 +506,13 @@ EXEC RenameProduct 201, 'Spanner';
 - Big Data processing involves large volumes of data in multiple formats - which is batch loaded and stored in a data lake where distr processing engines (Apache Spark) are used to process it 
 
 ### DW Arch & Process
+<div style="width:1024px"> 
+
 ![Data Warehousing Process Flow](./pictures/DP-900/modern-data-warehousing.png)
 
 ![Data Warehouse ETL](./pictures/DP-900/DW-data-ingestion-pipeline.png)
+</div>
+
 1. **Data Ingestion & Processing** 
     - reading data from transactional data stores, file, RT streams, etc... all get loaded into data lake or DW 
     - typically performs ETL or ELT so that landed data is optimized for analytical queries 
@@ -553,6 +557,117 @@ EXEC RenameProduct 201, 'Spanner';
     - either self service reports, or go to common dashboard view 
     - shows trends, comparisons, KPIs, etc.. all with security controls and ability to export & share and explore 
 
-## RT Analytics 
+## RT/Streaming Analytics 
+- much data can be processed as a *stream* of data - enabling systems that reveal RT insights/trends or respond immediately 
+
+### Batch vs Streaming
+- data processing is conversion of data to meaningful info and typically occurs through batch or streaming 
+
+- **Batch Processing**: multiple data records are collected & stored before being processed together in a single operation
+    - if data records were cars - batch processing is like getting cars into a parking lot and then running counts on them 
+    - great for "bulk" jobs, grouping many small jobs into one big one that can often be scheduled during off-hours 
+    - because its typically processing a LARGE amount of info all at once 
+        - needs to wait until ALL data is available prior to processing - cannot do piecemeal or one bit at a time to "get ahead" 
+        - it can take awhile to get results 
+        - error iterations can take a LOOOONG time and be painful to resolve 
+
+- **Streaming Processing**: source of data is constantly monitored and processed in RT as new data events occur 
+    - if data records were cars - streaming processing is like counting as the cars go by 
+    - each new piece/unit of data is processed when it arrives
+    - great for when dynamic data is generated on a continual basis & need for RT responses
+        - stock market VaR calc auto rebalance ptf 
+        - online gaming company analyzes data and provides offers & experiences in RT 
+        - RT property recommendations based on mobile geo-loc 
+
+- **Key Differences btw batch & streaming** 
+    - *Data Scope*: batch processing can process all data in the dataset so you can get a true "average" 
+        - Streaming only has access to most recent data (within 30 sec window) so you may only be able to get a "current avg" or at best "rolling avg" 
+    - *Data size*: batch processing can handle HUGE datasets efficiently 
+        - Streaming is designed for indv records or micro-batches
+    - *Perf*: Latency is the time taken for the data to be recieved & processed - for batch it can be hours, for streaming it can be ms 
+    - *Analysis*: Batch processing can perform complex analytics
+        - Streaming is used for simple functions, aggregations & calculations  
+
+- **Combining Batch & Streaming** 
+    - many large-scale apps include a mix of both batch & streaming for historical and RT analysis 
+        - great for monthly accumulation of sales (stream) compared with last year's sales (batch)
+    - streamed data is often stored for future batch processing - either in analytical data store (DW), or in data lakes... 
+
+### Streaming Architecture 
+<div style="width:1536px"> 
+
+![Stream Analytics Arch](./pictures/DP-900/stream-analytics-architecture.png)
+</div>
+
+1. An Event Generates data (log file, message, etc... )
+2. Generated data is captured in a streaming *source* for processing 
+    - folder in cloud data store, table in DB, or a queue that ensures Exactly-once processing
+3. Event data is processed - often by a perpetual query that operates on the event data 
+    - filters data, projects/forecasts, aggregates over temporal (time-based) periods/windows 
+4. Results of stream process are written to an output (sink) which may be a file, db talbe, RT dashboard, or another queue for subsequent downstream process 
+
+- **Sources for Stream processing**
+    - *Azure Event Hubs*: data ingestion service you can use to manage queues of event data, ensuring each event is processed FIFO, Exactly Once 
+    - *Az IoT Hub*: data ingestion service similar to Event Hubs but optimized for IoT events
+    - *Az DL Store Gen2*: storage that is often used for batch but can also be used as a source/sink for streaming 
+    - *Apache Kafka*: OSS data ingestion that's commonly used with Apache Spark - can use Az HDInsight to create a Kafka cluster
+- **Streaming Analytics in Azure** 
+    - *Azure Stream Analytics*: PaaS that allows you to define streaming jobs that ingest data from a streaming source, apply a perpetual query & write results to an output 
+    - *Spark Structured Streaming*: OSS that enables you to develop complex streaming solutions on Apache Spark based services - (Synapse, Databricks & Az HDInsight) 
+    - *Azure Data Explorer*: HiPerf Database & Analytics service that's optimized for ingesting and querying batch or streaming data with a time series element 
+        - can run standalone or in Synapse workspace
+- **Sinks for Stream Processing**
+    - *Az Event Hubs*: can queue data for further processing 
+    - *Az DL Store Gen2 or Az Blob Storage*: can persist processed results as a file 
+    - *Az SQL DB, Synapse or Az Databricks*: persist processed results in a db table for query & analysis 
+    - *PowerBI*: generate RT data viz in reports/dashboards 
+
+### Az Stream Analytics 
+<div style="width:1280px"> 
+
+![Stream Analytics E2E](./pictures/DP-900/stream-analytics-e2e-pipeline.png)
+</div>
+
+- service for complex event processing & analysis of streaming data. It can: 
+    - ingest data from input (Az Event Hub, Az IoT Hub or Az Storage blob container)
+    - process data by using a query to seslect, project & agg data values 
+    - write results to an output (Az DL Gen2, Az SQL DB, Az Synapse, Az Functions, Az Event Hub, PowerBI...) 
+- [Documentation Link](https://learn.microsoft.com/en-us/azure/stream-analytics/stream-analytics-introduction)
+- Once started the query will run perpetually, processing new data as it arrives in the input and storing results in the output 
+- Great choice for continuous capture of data from a streaming source, filter/agg and send results to a data store or downstream process for analysis/reporting 
+
+- You need to define all 3 parts (input, query & output) in Az Stream analytics to create a *Stream Analytics **job*** 
+    - query is in SQL syntax, and can use static reference data from other sources to combine with streaming data 
+    - if stream jobs are resource intensive - you can make a *Stream Analysis **Cluster*** which uses the same process engine as the *job* but in a dedicated tenant with scalability 
+
+### Az Apache Spark 
+- distr processing famework for large scale data analytics - it's available in Synapse, Databricks & HDInsight 
+- it runs code in parallel across multiple cluster nodes enabling processing of large volumes of data efficiently 
+- can be used for batch and stream processing 
+
+- **Spark Structured Streaming** 
+    - use the Spark Structured Streaming Library - which provides an API for ingesting, processing & outputting results from perpetual streams of data 
+    - built on the *dataframe* a "table" of data 
+    - can read from Kafka hub, file store, network port, a "boundless dataframe" that is continuously populated... 
+    - can define a query on that dataframe that filter/selects, projects/forecasts, or agg/calcs data in temporal windows  
+    - best for RT analytics when you need to incorporate streaming data into a spark based DL or analytical data store 
+- **Delta Lake**
+    - OSS Storage layer that adds support for transactional consistency, schema enforcement & other common DW features to DL storage 
+    - unifies storage for streaming & batch 
+    - can be used in Spark to define relational tables for both batch/stream processing 
+    - DL table can be used as streaming source or a sink 
+    - can ONLY be used in Synapse & Databricks 
+    - MORE details: 
+        - ACID transactions to protect against data integrity issues as you read from a file that's being processed by a different process 
+        - Scalable metadata handling - uses spark to manage metadata 
+        - Versioning & "TimeTravel" - go back in time or do rollbacks for auditing or experimentation 
+        - Open Format - uses parquet files as baseline 
+        - unified batch & streaming source/sink - all in 1 data source/output target 
+        - schema enforcement - data types are correct & req cols are present - preventing bad data & data inconsistency 
+        - audit history - tracks data changes 
+        - updates & deletes - from scala, java, python & SQL 
+        - compatible with Apache Spark API - can use existing data pipelines on this new source 
+- DL + Spark Structured Streaming is a good tool when you need to abstract batch & stream processed data in a DL behind a relational schema for SQL analysis 
+
 
 ## Data Visualization

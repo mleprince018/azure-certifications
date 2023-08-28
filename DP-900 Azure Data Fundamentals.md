@@ -13,8 +13,14 @@
 
 **Semi-Structured Data** : Information that has some structure - but allows for variation between entity instances (JSON)
 - could have a customer with 1 or multiple addresses 
+    - Key-Value, Documents (JSON), graph db... 
+- structure is not strict - often stored in noSQL dbs
 
 **Unstructured Data** : Text, pictures, video, audio, binary files... 
+    - pretty much can only be stored in file storage 
+    - block storage of data on disk through Azure Disks 
+    - File Share through Azure Files (NFS) to share across multiple VMs
+    - Object storage to access data via API through Azure Blob Storage 
 
 - **Data Stores** : store data in a format to record these details/events/info for further analysis 
     - File Storage (object/block/file system) 
@@ -81,20 +87,45 @@
 - **Relational Databases**: used to store & query structured data 
     - Each instance of an entity is assigned a primary key (PK) that uniquely identifies it and these can be stored in other tables to reference each other (customer bought which product...)
     - Can *normalize* a set of tables so that there is elimination of duplicate data values - degree of normalization depends on occurrence of duplicate values 
+    - predefined schema with relationships & constraints 
     - tables managed using SQL, typically based on ANSI std 
+> Below has been enhanced with Udemy & info from [data store overview](https://learn.microsoft.com/en-us/azure/architecture/guide/technology-choices/data-store-overview)
 - **Non-relational Databases**: data management systems that don't apply a relational schema to the database - AKA NoSQL database, even if they do support some variant of SQL. Come in 4 types:
     - *Key-Value Databases*: key & value, where value is anything 
+        - ~ Hash Map - where you have a key (unique ID) and a value - string, complex obj or JSON file... 
+        - simple lookups using query by keys (NOT optimized for query by values) - basically you MUST use a key to store/retrieve your value
+        - generally used for session info or caching data  
+        - Best for Azure Cosmos Table DB API or Azure Table Storage 
     - *Document Databases*: key-value where value is a JSON that system can parse & query 
-    - *Column Family Databases*: store tabular data of rows & cols, but columns are in groups known as column-families that store innfo that's logically related 
+        - can have a root object with attributes, child attributes and arrays that can hold sets of information for a particular attribute 
+        - unique ID (key) is usually very important as it is how they are retrieved - as these are often indexed 
+        - app defined schema: allows application to handle variations in data 
+        - definition of "denormalized data" - where all info relating to a particular entity is in ONE table - but multi address could lead to duplication... 
+        - think Azure Cosmos DB NoSQL & MongoDB => you CAN query based on document attributes (customer name...)
+            - product catalog, profile, shopping cart... HIGH Tx entities 
+    - *Column Family Databases*: store tabular data of rows & cols, but columns are in groups known as column-families that store info that's logically related 
+        - you have a number of set of col families ~ relational databases 
+        - best for structured, volatile data -> col family 
+        - rows can be sparse, and don't need value for each column 
+        - Use CosmosDB Cassandra: best for IOT, RT analytics, Fin data, transaction history... 
     - *Graph Database*: store entities as nodes with links to define relationships between them 
+        - Made up of nodes & edges - edge is the relationship between 2 nodes, and can store info about the node or edge on that node or edge (username on the node, or relationship = friend on the edge)
+        - CosmosDB Apache Gremlin for: fraud detection, org charts, people & relationships for social media...
+    - this allows for the schema to be setup however your application needs it - making it VERY flexible and can easily evolve over time 
+        - often very scalable - CosmosDB 
+
+![Column Family](./pictures/DP-900/column-family-conceptual.png)
 
 ## Transactional data processing solutions 
 - records transactions that are specific events and info around the event that the org wants to track (purchases/payments, etc...)
 - These often need to run and perform at scale with high-volume and sometimes handling millions of Tx per day 
+    - Transaction: small, discrete unit of work 
+        - In general, the workloads are: heavy writes & moderate reads with quick processing 
+    - generally store data as row storage for processing small transactions
 - this work is often called OLTP (OnLine Transactional Processing)
 
 - They often rely on a database where data storage is optimized for r/w operations where data is CRUD (created, retrieved/read, updated, deleted)
-- To ensure integrity of the data, it needs to follow **ACID**: 
+- To ensure integrity/transactional integrity of the data, it needs to follow **ACID**: (generally supported by RDBMS)
     - *Atomicity*: each transaction is treated as a single unit which succeeds or fails completely 
         - For example to transfer funds, it must debit one and credit the other. If either one fails, the entire action should fail.
     - *Consistency*: transactions can only take data in the db from one valid state to another 
@@ -108,6 +139,11 @@
 ## Analytical data processing solutions 
 - generally uses mostly read-only systems that store vast volumes of historical data or biz metrics 
 - analytics can be performed for data at a given point in time, or across a time-series of snapshots 
+- data is often consolidated or transformed into an analytics store & then queried 
+    - can have VERY large datasets 
+    - generally recommend Synapse for this 
+- because it is queried en-masse, data is often stored by columns rather than rows 
+    - this enables high compression (efficient use of space) AND the ability to partition/distribute data across multiple nodes => parallel processing 
 
 - Common Enterprise flow: 
     - Data files stored in data lake
@@ -210,6 +246,7 @@
 - relational model provides a way of representing & querying data that can be used by any app
     - key advantage is use of tables, an intuitive, efficient and flexible way to store and access structured info 
 - simple, yet powerful is used for all sorts of needs - tracking inventories, mission critical systems... etc 
+- schema on WRITE 
 
 ## Relational Data Concepts 
 - Model collections of entities from the real world as tables - generally objects & events
@@ -217,15 +254,18 @@
     - each column is an attribute or piece of information that describes or provides context around the obj/event 
 - Sometimes info can be missing (NULL) 
 - columns are often a particular datatype (date, integer, string, decimal, ...)
-- **Normalization** is a term used by db professionals for schema design process that minimizes data duplication & enforce data integrity 
+- **Normalization** is a term used by db professionals for schema design process that minimizes data duplication (efficient storage) & enforce data integrity 
     - while there are many complex rules that go into refactoring the various forms of normalization it boils down to: 
     1. separate each entity into its own table 
     2. separate each discrete attribute into its own column 
     3. uniquely identify each entity instance (row) using a PK 
     4. Use FK cols to link related entities 
+    - 1NF: single atomic valued cols (address would be bad, street name, city, etc is better)
+    - 2NF: Eliminate redundant data 
+    - 3NF: Move cols not directly dependent on PK 
 - Now, when you update a customer address you update 1 row in 1 table, and not multiple times across multiple tables... 
     - can also filter based on a particular column of info - like address or city or state - can't do that if they are all jumbled together 
-- RDBMS generally assists in enforcing referential integrity
+- RDBMS generally assists in enforcing referential integrity & keeping data integrity 
 - can setup a composite key (a combo of multiple unique columns) to create a unique "PK" 
 
 ### SQL 
@@ -241,6 +281,7 @@
     - create tables/views, alter table to add a new col, drop table (no CTL+Z here!), rename obj
     - can create columns with specific data types (int, decimal, varchar), add labels and specify whethery they are nullable 
 - **Data Control Language DCL** 
+    - Think ACLs ~ DCL - it's controlling access & authorization 
     - Grant : grant permission to perform specific actions
     - Deny : deny permission to perform specific actions 
     - Revoke : remove a previously granted permission
@@ -253,10 +294,14 @@ TO user1;
     - DML manipulates rows in tables - to retrieve/query data, insert new rows, modify existing, or delete rows 
     - SELECT/INSERT/UPDATE/DELETE 
     - insert does 1 row at a time, the others apply to the ENTIRE table - use where clauses to segment data your update/select/delete action is performed on
-    
-### Database Objects (Views, Stored Procs, Indexes)
+- **Transaction Control Language TCL** (from Udemy course)
+    - Controls transactions within a DB - COMMIT/ROLLBACK 
+
+### Database Objects (Views, Stored Procs, Indexes) 
+
 - **View** - virtual table based on results of select query - a "window" on specified rows or underlying tables 
-    - access this as a "table" and it runs the query behind the scenes to generate a table that you can then use 
+    - access this as a "table" and it runs the pre-defined query behind the scenes to generate a table that you can then use
+    - great way to add calc cols, join multi tables, or filter unnecessary cols 
 - **Stored Procedure** - defines SQL statements that can be run on command (a program)
     - store program logic in a db for actions that apps need to perform when working with data 
     - (change name of product name of given ID) - you pass the ID and the new product name and it does the change!
@@ -272,11 +317,15 @@ WHERE ID = @ProductID;
 EXEC RenameProduct 201, 'Spanner';
 ```
 - **Indexes** : help search for data in a table ~ back of a book with shortlist of references and the page you need to go to, makes it much faster to find info needed 
-    - you specify a column from the table and the index contains a copy of this data in a sorted order with pointers to the corresponding rows in the table 
+    - you specify column(s) from the table and the index contains a copy of this data in a sorted order with pointers to the corresponding rows in the table 
+        - it is AUTO created with PK, and you can build as many indexes as you want 
     - when you run a query with WHERE - it can fetch data faster using the index rather than scanning row by row 
     - best used on LARGE tables where a particular column is regularly queried 
     - BUT indexes are updated upon insert, update & delete operations, if you have too many it can slow those operations down 
     - need to strike a balance between indexing for query speed and write speed 
+    - 2 kinds of Indexes
+        - clustered index: data in table is stored in the order of index key values ==> adds an additional constraint that there can only be ONE clustered index per table to ensure data can be sorted properly (avoiding conflicting sorts with multiple clustered indexes)
+        - non-clustered index: stored separately with pointers to the data rows 
 
 ![Index Visual](./pictures/DP-900/Index_Pictoral.png)
 
@@ -322,19 +371,23 @@ EXEC RenameProduct 201, 'Spanner';
     - you create a managed dbms and then deploy your databases on that server - SQL database is a construct that acts as central admin point for single or pooled dbs, logins, firewall, audit, threat detection & failover... 
         - Single Database: quickly setup & run a SQL server DB - create a db server and access db through this server 
             - since azure manages the server, all you do is configure db, create tables and fill with data
-            - can vertically scale 
-            - can be setup as a "serverless" config - where MSFT creates its own server which might be shared with other tenants and scales up/down as needed 
+            - setup as a provisioned (pre-allocated vCores & RAM) or serverless
+            - "serverless" config - where MSFT creates its own server which might be shared with other tenants and scales up/down as needed 
         - Elastic Pool: now runs multiple databases on the same resources (memory, data storage space and processing power - a "pool" of resources) 
-            - cost effective way of managing multiple dbs with varied usage
+            - cost effective way of managing multiple dbs with varied usage 
         - Database server:  a way to manage groups of single dbs & elastic pools 
     - best option for low cost with minimal admin - not fully compatible with on-prem installs, but you can run Data Migration Assistant to see 
     - Az auto updates & patches SQL server software so you are always running latest
-        - Az allows easy scale up/down of server without upgrade... 
+        - Az allows easy scale up/down of server without upgrade... and 100TB max storage
         - service provides HA guarantees 99.995% with point-in-time restore and DR replication to other AZ regions 
         - advanced threat protection and security with vulnerability assessments, can detect anomalous activities and monitor db for suspicious activities... 
         - auditing tracking with extensive logs for reg compliance, and tracking db activities
         - securely encrypt data at rest or when transferred 
+            - auto encrypts data at rest 
+        - uses SQL Server Authc or Az AD authc which can be combined with MFA
 - **Azure SQL Edge**: SQL engine optimized for IOT that needs to work with streaming time-series data 
+
+
 
 ### Azure DBMS for OSS (MySQL, MariaDB & PostgreSQL)
 - popular OSS rdbms - hosting in Azure you get these benefits: 
@@ -436,8 +489,6 @@ EXEC RenameProduct 201, 'Spanner';
     - partitions are indp of one another, and can grow/shrink as indv units
     - no limit to # of partitions 
     - searching data can involve partition key - allows you to narrow down vol of data to be reviewed and can reduce I/O to locate data 
-
-![Azure Tables](./pictures/DP-900/azure-blob-storage-structure.png)
 
 ## Cosmos DB Fundamentals 
 ![Cosmos DB](./pictures/DP-900/azure-cosmos-db-overview.png)
@@ -725,4 +776,4 @@ EXEC RenameProduct 201, 'Spanner';
 
 ### Power BI Usage 
 - 3 views - a report view, table/data view & model 
-- model is for OLAP
+    - model is for OLAP

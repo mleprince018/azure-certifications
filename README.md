@@ -29,8 +29,12 @@
 # References & Overview for Azure Data Fundamentals
 - Main Page: https://learn.microsoft.com/en-us/certifications/exams/dp-900/ 
 - [My notes I used to pass the exam](./DP-900%20Azure%20Data%20Fundamentals.md)
+- Udemy Course: [DP-900: Microsoft Azure Data Fundamentals in a Weekend](https://www.udemy.com/course/dp-900-azure-data-fundamentals-certification/) 
+  - chosen because of quizzes in addition to practice exam - and had ~ 8h of content which was long enough to cover details, but not spend time relearning the basics 
+  - Slide 42 is particularly helpful 
 
-# References for Future Learning
+# References for Future Learning 
+- Stumbled across [this](https://learn.microsoft.com/en-us/azure/architecture/guide/technology-choices/technology-choices-overview) - which explains azure's approach to selecting services - probably where a lot of exam material is pulled from 
 - Azure Admin Associate https://query.prod.cms.rt.microsoft.com/cms/api/am/binary/RE4AElB  
 - [Az Network Foundation Services](https://learn.microsoft.com/en-us/training/paths/intro-to-azure-network-foundation-services/) 
 - [Az data analytics fundamentals](https://learn.microsoft.com/en-us/training/paths/azure-data-fundamentals-explore-data-warehouse-analytics/)

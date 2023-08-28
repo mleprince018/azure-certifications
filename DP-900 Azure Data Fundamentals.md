@@ -669,5 +669,60 @@ EXEC RenameProduct 201, 'Spanner';
         - compatible with Apache Spark API - can use existing data pipelines on this new source 
 - DL + Spark Structured Streaming is a good tool when you need to abstract batch & stream processed data in a DL behind a relational schema for SQL analysis 
 
-
 ## Data Visualization
+- Data modeling & visualization is at the heart of BI workloads that feed reporting & decision making that helps orgs succeed 
+
+### Power BI Overview
+![Power BI Overview](./pictures/DP-900/power-bi-flow.png)
+- Many data visualization tools out there like Excel, widgets in notebooks... 
+- If you need enterprise-scale biz analytics, and an integrated tool that can support complex data modeling, interactive reporting and secured sharing... then you need POWER BI
+
+
+- **PowerBI** : suite of tools & services that data analysts can use to build interactive data viz for biz users 
+- typical workflow begins with **Power BI desktop** 
+    - you can import data from a range of data sources, combine & org data from all sources into an analytics data model & create reports that contain interactive viz of the data 
+- With reports created, you publish them to **Power BI Service** - a cloud service where reports can then be consumed by biz users in browser or *Power BI mobile app* 
+    - Full functionality for viewing reports is within the desktop app 
+- Power BI Service can be set to refresh the data on regular intervals, share reports with others, and define dashboards/apps that combine related reports into a single, easy to consume location 
+
+### Data Modeling Concepts 
+> NOTE: This is not the analytics and statistical analysis of data modeling - this is reporting data structure
+![OLAP Cube](./pictures/DP-900/olap-cube_az-analytical-model.png)
+
+- PowerBI can define an OLAP cube from tables of data if you feed it the data sources 
+    - they have a data modeling interface on the *Model* tab of Power BI Desktop to define the analytical model (OLAP CUBE) by creating relationships between fact/dimension tables and defining hierarchies 
+    - can set data types, display formats for fields and perform other data mgt that enriches reports 
+
+- **OLAP Cubes ("Analytical models")** 
+    - enable you to structure data to support analysis 
+    - based on related tables of data & define numeric values (measures) you want to analyze/report on by entities you want to aggregate on (dimensions) 
+    - can have MANY many dimensions like products, customers, time... 
+
+![Star Schema](./pictures/DP-900/star-schema.png)
+- **Tables & Schema** 
+    - can organize into a set of dimension tables (entities by which you want to agg numeric measures) that each have a key value 
+        - remaining cols are attributes of the entity
+    - numerics to be aggregated by are in the FACT table - typically a recorded event with metrics (sales) 
+    - Star Schema is very common - if it gets extended its called a "snowflake" 
+    - this typically feeds the OLAP cube so that report data can be quickly agg & displayed on reports 
+
+![Drill Down Data setup](./pictures/DP-900/drill-down-hierarchy.png)
+- **Attribute Hierarchies** 
+    - OLAP cubes are best with creation of attribute hierarchies (drill-down) so that you can have Product Category, sub-category... or Year, Month, Week, Day type of analysis 
+    - OLAP cube can pre-agg by all these so you can expand into each one and see details 
+
+### Designing Reports/Dashboards with common Charts 
+- **Tables & Text** - simplest way to communicate data
+    - tables are useful when numerous values must be displayed 
+    - text values can be used to highlight important figures/metrics 
+- **Bar & Column Charts** - Visually compare numeric values for discrete categories 
+- **Line Charts** - compare categorized values and useful to examine trends over time 
+- **Pie Charts** - show proportions of a total 
+- **Scatter Plots** - compare 2 numeric measures to determine relationship/correlation 
+- **Maps** - Geographic comparison 
+- Interactive reports in PowerBI 
+    - visual elements are linked together and provide interactivity - auto highlighting, filtering, etc 
+
+### Power BI Usage 
+- 3 views - a report view, table/data view & model 
+- model is for OLAP

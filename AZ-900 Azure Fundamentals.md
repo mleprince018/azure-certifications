@@ -481,6 +481,7 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
         - Cool: Optimized for data that is infrequently accessed and stored for at least 30 days  (short term backups & dr data)
         - Cold: rarely accessed data you want to keep for at least 90 days
         - Archive: data that is rarely accessed and has flexible latency  - kept for min of 180 days 
+            - can take hours to pull data from archive and generally done in 2 ways: rehydrate - change access tier to hot/cool OR copy the blob to another container with a hot/cool access tier 
         - NOTE: hot & cool can be set at account level, archive isn't avail at account level 
         - NOTE: hot/cool/archive can be set at blob level - during or after upload 
         - NOTE: Archive offers lowest storage costs, but higher costs to pull data, cool storage is between. The min days is there because you can get charged an early deletion penalty 

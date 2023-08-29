@@ -339,7 +339,7 @@ EXEC RenameProduct 201, 'Spanner';
 
 - **SQL Server on Azure VMs**: IaaS solution that virtualizes hardware as a VM running in Azure with installation of SQL server 
     - you pick the SQL Server edition (Enterprise, Standard, Web... free license on a particular OS)
-    - *Use-cases*: Great for lift n shift migrations OR when you need FULL control over all aspects of server & db config OR rapid dev & test of ideas without on-prem, non-prod SQL server 
+    - *Use-cases*: Great for lift n shift migrations OR when you need FULL control over all aspects of server OS & db config OR rapid dev & test of ideas without on-prem, non-prod SQL server 
     - *Compatibility*: Fully compatible with on-prem MS SQL enabling lift n shift without changes 
     - *Tech Stack*: MS SQL DBMS installed on a single VM - can run multiple DB on that VM 
     - *Owner Responsibility*: you MUST manage all aspects from OS on up - all dbms updates, configs, backups etc... 
@@ -354,28 +354,38 @@ EXEC RenameProduct 201, 'Spanner';
         - if you used linked servers, service broker (message system to distr work across servers), or db mail - should use managed instance
         - can be deployed on-prem or in another cloud using Azure Arc
     - *Compatibility*: near 100% compatibility & most on-prem dbs can be migrated with minimal code changes using Azure DB Migration service 
-        - can install Data Migration Assistant to check compatibility with this 
+        - can install Data Migration Assistant to check compatibility with this
         - uses Az AD to perform logins with a user/pass and can use Az AD so your computer is trusted and you only need to login once 
+        - NO SQL Server Analysis Services SSAS - run complex analytic queries 
+        - NO SQL Server Reporting Services SSRS - generate complex reports in SQL server 
+        - NO Polybase - connect to external data sources and run SQL queries (allows you to join dataq from a SQL server instance using T-SQL with external sources like other SQL servers, Oracle, Teradata, MongoDB & hadoop...)
     - *Tech Stack*: Managed Instance can support multiple dbs, can use instance pools to share resources across smaller instances 
     - *Owner Responsibility*: Azure will perform auto software updates, backups, recovery, db monitoring and other general tasks. You control security & resource allocation for db
     - managed instances rely on Azure services for the automated tasks it performs: Azure Storage for backups, Azure Event Hubs for telemetry, Azure AD for authc, Azure Key Vault for data encryption... 
         - all comms are encrypted using signed certs, they validate trustworthiness of servers talking to them through cert lists and has a revokation/black list
     - enables sys admin to spend less time on admin tasks as service performs or simplifies those tasks for you 
         - OS & DBMS software install, patching, instance vertical scale up/down, config, backups, DB replication, HA config & monitoring/health 
+    - *Configuration & Cost Model* vCore ONLY - NO DTUs 
+        - can setup as General Purpose or Biz Critical (no hyperscale)
+        - you only setup instance (db server) you don't setup the database name 
+        - quite a bit more expensive than Azure SQL Db options 
     
 - **Azure SQL Database**: full PaaS designed for cloud
-    - *Use-cases*: best for new app dev in the cloud that needs latest stable SQL Server features, apps that require HA, systems with variable load that need to scale up/down, migrate apps that have low impact on db adjustments... 
-    - *Compatibility*: supports core db capabilities, some features of on-prem are not available 
+    - *Use-cases*: best for *new* app dev in the cloud that needs latest stable SQL Server features, apps that require HA, systems with variable load that need to scale up/down, migrate apps that have low impact on db adjustments... 
+    - *Compatibility*: supports core db capabilities, some features of on-prem are not available (see below)
+        - NO cross-database queries & transactions within a single sql server instance (can run transactions that affect multi-db)
+        - NO database mail
+        - NO SQL Server Agent: executes scheduled admin tasks 
+        - NO Native VNet support: only managed instance/VM can be attached to VNet
     - *Tech Stack*: can be setup as a *single* db in dedicated server, or an *elastic pool* to share resources across multiple dbs and take advantage of on-demand scalability 
     - *Owner Responsibility*: ?just write queries? 
     - you create a managed dbms and then deploy your databases on that server - SQL database is a construct that acts as central admin point for single or pooled dbs, logins, firewall, audit, threat detection & failover... 
-        - Single Database: quickly setup & run a SQL server DB - create a db server and access db through this server 
+        - Single Database: quickly setup & run a SQL server DB 
+            - reference a db server (create brand new or existing) and access db through this server 
             - since azure manages the server, all you do is configure db, create tables and fill with data
-            - setup as a provisioned (pre-allocated vCores & RAM) or serverless
-            - "serverless" config - where MSFT creates its own server which might be shared with other tenants and scales up/down as needed 
         - Elastic Pool: now runs multiple databases on the same resources (memory, data storage space and processing power - a "pool" of resources) 
             - cost effective way of managing multiple dbs with varied usage 
-        - Database server:  a way to manage groups of single dbs & elastic pools 
+        - Database server:  a way to manage groups of single dbs & elastic pools - the "VM" that hosts your database
     - best option for low cost with minimal admin - not fully compatible with on-prem installs, but you can run Data Migration Assistant to see 
     - Az auto updates & patches SQL server software so you are always running latest
         - Az allows easy scale up/down of server without upgrade... and 100TB max storage
@@ -385,13 +395,45 @@ EXEC RenameProduct 201, 'Spanner';
         - securely encrypt data at rest or when transferred 
             - auto encrypts data at rest 
         - uses SQL Server Authc or Az AD authc which can be combined with MFA
+    
 - **Azure SQL Edge**: SQL engine optimized for IOT that needs to work with streaming time-series data 
 
+### Azure SQL Database Config & Cost 
+- [Reference](https://learn.microsoft.com/en-us/azure/azure-sql/database/purchasing-models?view=azuresql) 
 
+![DTU vs vCore Pricing Model](./pictures/DP-900/az-sql-db-pricing-model.png)
+- can change your DB from vCore to DTU at anytime without bringing offline
+- The below applies for both elastic pools or Single DB: 
+- **vCore** : has high compute, memory I/O & storage limits and can be setup as a provisioned or serverless 
+    -  Cost depends on service tier (3 levels below), hardware config, compute resources, reserved db storage, actual backup storage
+        - General Purpose: budget oriented, balanced, scaled compute (512GB max storage)
+        - HyperScale: meant for highly variable workloads & storage with high resilience (100 TB storage max) ==> *Once set here - CANNOT convert to another service tier* 
+        - Biz Critical: Highest resilience to failures by using HA replicas & provides best I/O perf
+            - can setup read replicas for "read scale out" to offload certain queries processing 
+    - Provisioned - you pre-allocate vCores, RAM & space you are billed for what you provisioned (CPU & storage)
+        - backup storage depends on backup config, but generally billed on what you use
+        - *You can BYOLicense to save cost*        
+    - Serverless Compute - db is paused during inactive periods, only billed for storage during inactive periods - you set a MAX vCore & RAM & space
+        - if there's any activity, the database is automatically resumed and you get billed for that usage
+        - "serverless" config - where MSFT creates its own server which might be shared with other tenants and scales up/down as needed 
+- **DTU (Database Transaction Unit)**: bundled compute & storage package that balance CPU, memory, IO... 
+    - if you want to keep things simple and keep fixed payments - use DTU, you are billed on your allocated DTUs (no cost for CPU ) - for small/medium dbs 
+        - Basic - budget option & very small options for size of storage (2GB max)
+        - Standard - has flexible choice in CPU configs & storage (3000 DTUs & 1024 GB)
+        - Premium - faster and more powerful  
+        - you can linearly scale (CPU, RAM, IO) as a group, but NOT independently 
+        - 10 years LT retention avail
+
+### Connecting to your SQL Database
+1. DB should allow connections from your IP - firewall rules, NSGs 
+2. User should be created so you can authc 
+3. User should have sufficient auth to perform queries, etc 
+
+![Azure SQL Comparison](./pictures/DP-900/AzureSQL-comparison.png) 
 
 ### Azure DBMS for OSS (MySQL, MariaDB & PostgreSQL)
 - popular OSS rdbms - hosting in Azure you get these benefits: 
-    - HA config by default 
+    - HA config by default for Single/Multi zone (99.99% avail)
     - predictive performance 
     - pay as you go pricing 
     - easy vertical scaling up/down 
@@ -401,7 +443,7 @@ EXEC RenameProduct 201, 'Spanner';
 
 - **Azure DB for MySQL** : a PaaS implementation of the community edition
     - MySQL itself began as simple OSS DBMS that got used in LAMP stack - popularized by Facebook & has community, std & enterprise editions
-    - includes HA config at no additional cost, scalability as needed, automated backups with point-in-time recovery, & you only pay for what you use 
+    - includes HA config (single zone or multi zone) at no additional cost, scalability as needed, automated backups with point-in-time recovery, & you only pay for what you use 
     - provides connection security for firewall, SSL, and can set max # of connections, timeouts, lock modes, etc 
     - just like Az SQL Db - don't have to do hardware, network, VM, OS or dbms patching... 
         - you WON'T be able to perform certain security & admin features as Azure performs those on your behalf 
@@ -422,10 +464,25 @@ EXEC RenameProduct 201, 'Spanner';
     - pgAdmin can be used to manage/monitor PSQL db, and can be used to connect to Azure DB for PSQL - but you can't do backup/restore as that's managed by Az now
     - stores audit trail of querires run in db called `azure_sys` and can query the `query_store.qs_view` table to view it and monitor queries run 
 
-![Azure SQL Comparison](./pictures/DP-900/AzureSQL-comparison.png) 
+# Explore Storage Account Data in Azure 
+- many software apps need to store data, when not in relational databases using SQL, there are many options 
+- need a storage account for Disks, Queues, Blob, Files, Tables or DL storage 
+- durability comes from duplicating data across an AZ, across several AZs and across Regions 
+- can reuse storage account for blobs with File Share without creating a new storage account 
 
-# Explore Non-Relational Data in Azure 
-- many software apps need to store data, when not in relational databases using SQL, there are many options
+## Azure Disks 
+- BLO*CK* storage for Azure VMs 
+- HDD for your computer - in general one block storage per VM
+- one VM can be setup to multiple block storage disks 
+- Types: 
+    - Standard HDD, Standard SSD, Premium SSD & Ultra SSD 
+- Managed disks are the default - az handles storage and takes care of HA & durability 
+- Unmanaged disks: you manage storage & storage account (can be complicated) 
+    - unmanaged disks go into "containers" - NOT to be confused with blob/docker containers 
+
+## Azure Queues
+- decouple apps using messaging queues 
+
 ## Azure Blob Storage 
 ![Blob Storage Structure](./pictures/DP-900/azure-blob-storage-structure.png)
 - a service that enables you to store massive amounts of unstructured data as BLOBs in the cloud 
@@ -435,14 +492,15 @@ EXEC RenameProduct 201, 'Spanner';
     - but really it's just a long text name with '/' as an arbitrary delimiter ! Spelling Matters ! 
     - because these are not true "folders" you cannot perform bulk actions on these or control access to these "folders" 
 ### Types of Blobs
-- **Block Blobs**: handled as a set of blocks that range in size up to 100MB sized blocks 
+- **Block Blobs**: handled as a set of blocks that range in size up to 100MB sized blocks (complete file as a whole)
     - can contain up to 50k blocks, providing max size of over 4.7 TB 
     - block is smallest amount of data that can be r/w as a indv unit 
-    - used for discrete, large binary obj that change infrequently 
+    - used for discrete, large binary obj that change infrequently (you upload once and it doesn't get modified very often - pics vids, backups, archives)
 - **Page Blobs**: a collection of fixed size 512 byte pages 
     - optimized to support random r/w ops and can fetch and store data for a single page if necessary 
     - can hold a max of 8 TB of data
     - can be used as virtual disk storage for VMs 
+    - backbone of Az Disks
 - **Append Blobs**: block blob optimized for appends
     - you can only add blocks to the end of an append blob, updating or deleting existing blocks isn't supported 
     - blocks can vary in size up to 4 MB, max size is 195 GB 
@@ -454,18 +512,19 @@ EXEC RenameProduct 201, 'Spanner';
 ## Azure DataLake Storage Gen2 
 - Gen1 is a separate service for hierarchical data storage for analytical data lakes that allows you to work with struct, semi-struct & unstruct data in files
 - Gen2 is integrated into azure storage -> now can use blob storage and cost control policies of storage tiers and hierarchical file system capabilities 
-- Hadoop, Azure DB, Synapse analytics can mount a distr file system in Az Data Lake Store Gen2 and use it to process huge volumes of data 
+- Hadoop, Azure DB, Synapse analytics can mount a distr file system in Az Data Lake Store Gen2 and use it to process huge volumes of data (exabytes) in a hierarchical structure
 - to create it, you MUST enable **Hierarchical Namespace** option & create a blob container in the azure storage account either upon creation, or "upgrading" the storage account 
     - upgrading/altering a storage account to support hierarchical namespace is NOT reversible, once done, you are stuck with it 
     - from [hierarchical namespace](https://learn.microsoft.com/en-us/azure/storage/blobs/data-lake-storage-namespace): appears to enable file system setup of directories UNDER a container - unlike standard blob storage 
+- because it has hierarchical "folders" you can put RBAC ACL on the files/folders 
 
 ![DL Storage Gen2](./pictures/DP-900/azure-data-lake-storage-structure.png)
 > NOTE THE HIERARCHICAL NAMESPACE - DIFFERENT FROM PLAIN BLOB STORAGE 
 
-
 ## Azure Files 
 - file shares enable you to store file on one computer and grant access to that file to users & apps running on other machines 
-    - works great for LAN, but doesn't scale well if users are spread out across geography 
+    - works great for LAN, but doesn't scale well if users are spread out across geography \
+    - can also be good for media (videos/pictures) to share in a secure & organized way 
 - Azure Files creates a cloud-based NFS to make files available to a broad set of users 
     - NOT to be confused with File Synch which extends Azure File Storage so that on-prem files can be shared more easily with users at other sites 
     - hosting in Azure allows you to eliminate hardware costs, maintenance overhead and benefit from HA & scalable cloud storage 
@@ -478,10 +537,11 @@ EXEC RenameProduct 201, 'Spanner';
 
 ## Azure Tables 
 - a NoSQL storage solution that uses tables containing key/value data items - *NOT like a relational db table*
-- enables storage of semi-struct data
+- enables storage of semi-struct data ==> in general cosmosDB is preferred over this 
+- by default only supports read replicas in other regions, use cosmosdb for multi-region writes
 - The unique KEY in the table is: (Partition key & row key) 
     - items in partition are stored in row key order 
-    - allows an app to perform point queries that ID a single row & range queries that fetch a block of rows in a partition 
+    - allows an app to perform simple & point queries that ID a single row & range queries that fetch a block of rows in a partition 
 - when you modify data, a timestamp col records dttm of modification made - after that, any other columns needed are entirely up to the user
 - No concept of FKs, relationships, stored procs, views... that come with relational db 
     - this is just pure denormalized data
@@ -490,24 +550,29 @@ EXEC RenameProduct 201, 'Spanner';
     - no limit to # of partitions 
     - searching data can involve partition key - allows you to narrow down vol of data to be reviewed and can reduce I/O to locate data 
 
+# Explore Non-Relational DB Storage 
+
 ## Cosmos DB Fundamentals 
 ![Cosmos DB](./pictures/DP-900/azure-cosmos-db-overview.png)
 - relational database restrictions can be a PITA - so can use NoSQL db for more flexibility and store a variety of info
-    - store documents, graphs, key-values, and column family
-- CosmosDB is the HA, globally scalable NoSQL DBMS 
+- Best for semi-structued data stored as: documents, graphs, key-values, and column family 
+- CosmosDB is the fully managed, HA (99.999% avail), globally scalable (serverless capabilities, no need to configure server) NoSQL DBMS 
 
 ### Basics of Cosmos DB
 - supports multiple APIs that allow devs to use semantics of many kinds of data store to work with it 
     - internal data structure is abstracted allowing for simpler & more familiar store/query APIs 
 - uses indexes & partitioning to provide fast r/w perf and can scale to massive volumes 
 - *enable multi-region writes* so that you can globally distr your data and users can each work with data in their local replica 
-    - need to adding regions to your choice so CosmosDB 
+    - to enable globally distr users their own local replica of cosmost
+    - need to adding regions to your choice so CosmosDB with a click
 - By default - Cosmos DB
     - allocates space in a container for your partitions that can be max 10 GB each 
     - indexes are created & maintained automatically 
     - foundational service that is regularly used by MSFT and mission critical 
 
+
 - **Use-cases**: [highly scalable global NoSQL DBMS](https://learn.microsoft.com/en-us/azure/cosmos-db/use-cases)
+    - let your structure evolve over time 
     - IOT & Telematics: systems usually dump data at regular intervals => Cosmos DB can handle big volume writes 
         -  Data can be then fed to downstream analytics (ML, Azure HDInsight & PowerBI)
         - can process data in RT using Azure Functions as it arrives 
@@ -519,36 +584,76 @@ EXEC RenameProduct 201, 'Spanner';
 
 ### Cosmos DB APIs 
 - can support both relational / non-relational workloads & you can migrate PSQL, MongoDB & Apache Cassandra to it 
-- when you create Cosmos DB, you select a db engine you want to use
-- **Cosmos DB for NoSQL**: MSFT native non-relational service - manages data in JSON doc format and allows SQL syntax to manage data 
+- when you create Cosmos DB, you select a db engine you want to use 
+    - NOTE: *Second instance of MongoDB requires a second cosmos DB account* - you need a cosmos DB account for each one 
+    - NOTE: API cannot be changed after account creation
+- **Cosmos DB for NoSQL/CoreSQL**: MSFT native non-relational service 
+    - manages data in JSON doc format and *allows SQL syntax to manage/query data* 
     - fast, flexible dev with SQL & client libraries for .NET, javascript, python & java
+    - Structure:  Azure Cosmos DB Account >> Databases >> Containers >> Items 
+        - Database ~ RDBMS schema
+        - Container ~ table - BUT it has you specify a *partition key* 
+            - this is how cosmos DB get's its global distr by breaking up table across many machines all over - this tells you how to break the table apart 
+        - Item ~ Rows - your key:document 
 - **Cosmos DB for MongoDB**: popular OSS db which data is stored in Binary JSON (BSON) 
     - great for migrating from MongoDB 
     - can use MQL: compact, obj oriented syntax where devs use objects to call methods (dot operators like js `db.products.find({id: 123})`)
+    - split your data on multiple "shards" rather than partitions, and they use "collections" rather than containers 
+    - Database >> Collection >> Document
 - **Cosmos DB for PSQL**: native PSQL globally distr db that auto shards data so you can build highly scalable apps  
-    - as you grow - this automatically can scale up 
+    - as you grow - this automatically can scale up, using Citus distributed tables 
     - can even run as a relational dbms
 - **Cosmos DB for Table**: Work with Azure Table Storage using the key-value stores 
-    - can enhance scalability & perf from a traditional table  
+    - can enhance scalability & perf from a traditional table ==> using cosmosDB allows multi-region read/writes
+    - you can create a Table 
+    - Entities are "rows" with a partition key & row key 
 - **Cosmos DB for Apache Cassandra**: OSS db with column family struct where each row doesn't have to have the same cols
-    - great for migrating apache cassandra over to azure
+    - great for migrating apache cassandra over to azure 
+    - they have a Keyspace >> Table >> Row
 - **Cosmos DB for Apache Gremlin**: data in a graph structure
     - entities are defined as vertices that form nodes in a connected graph 
     - includes functions to operate on vertices & edges allowing you to CRUD graph data 
+    - create a new Graph Database (~schema), and then create a "Graph" (~table) and then you can create nodes & relationships
 
+### Configuration & Cost of Cosmos DB
 - When creating Cosmos DB you need to pick between Provisioned Throughput or Serverless 
-    - **Provisioned Throughput** 
-        - this is your global traffic and guaranteed performance - best for sustained traffic requiring predictable perf
-        - billing is done through Request Units (RUs) a throughput that you set (this is autoscalable)
-        - Billed per HOUR on the RUs you reserved, regardless of how many consumed 
-        - NO limit of storage per container
-    - **Serverless** 
-        - budget option for intermittent/unpredictable traffic that stays within normal bounds
-        - runs db ops against containters so you don't dedicate provisioned capacity 
-        - ONLY runs in ONE region, has 1 TB limit of storage per container 
-        - slower reads & writes
-        - *billed only on RUs consumed* 
-- to enable globally distr users their own local replica of cosmost
+- **Provisioned Throughput** 
+    - this is your global traffic and guaranteed performance - best for sustained traffic requiring predictable perf
+    - billing is done through Request Units (RUs) a throughput that you set (this is autoscalable)
+    - Billed per HOUR on the RUs you reserved, regardless of how many consumed + Storage 
+    - NO limit of storage per container
+    - Multi-region support
+- **Serverless** 
+    - budget option for intermittent/unpredictable traffic that stays within normal bounds
+    - runs db ops against containters so you don't dedicate provisioned capacity 
+    - ONLY runs in ONE region, has 1 TB limit of storage per container 
+        - 50 GB storage limit per container
+    - slower reads & writes
+    - *billed only on RUs consumed* + Storage
+    - SINGLE REGION ONLY 
+
+### Cosmos DB Consistency 
+- Single-Digit ms response even with petabytes of data with Millions of Tx/s ==> immense horizontal scalability 
+- Consistency Levels:
+    - Strong: (only applies to SINGLE region) linearized guarantee ~ serving requests concurrently
+        - *reads are guaranteed to return most recent committed version of an item*
+        - clients never see an uncommitteed or partial write
+    - Bounded Staleness: (single region write with data replicated to other regions)  
+        - because of lag between regions, you pick a limit for data "staleness" either # of versions/updates behind for items or a Time interval that reads can lag behind the writes 
+        - writes to the main will get throttled if the other regions are not within the "staleness" bounds 
+    - Session Consistency: within a single client session, reads are guaranteed to honor the "read your writes" & "writes follows reads" guarantees
+        - assumes a single "writer" session or sharing that session token among a group of "writers" 
+        - within a session - your writes/reads all line up
+        - writes replicated to a min of 3x in local region and asynch to the others 
+    - Consistent Prefix: writes are replicated a min of 3x in the local region, with asynch to other regions
+        - updates made as one see eventual consistency - but maintain order
+    - Eventual Consistency: all data is asynch to other regions, but order is not guaranteed 
+
+### Cosmos DB Partitioning 
+- Each container is horizontally partitioned in an azure region 
+- items in a container divided into logical partitions based on partition key, that then get grouped into physical partitions on infra
+- cosmosDB handles the logical/physical partitioning for you 
+    - also ensures HA & Durability 
 
 # Explore Data Analytics in Azure 
 

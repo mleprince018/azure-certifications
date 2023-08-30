@@ -206,38 +206,7 @@
 - **Azure Storage** (storage accounts)
     - a core Azure service that allows you to store data in BLOB containers, file shares & tables (key-value storage for apps that need to r/w values quickly)
     - data engineers use azure storage to host data lakes using special BLOB storage with hierarchical namespace that enables files to be organized folders in a distr file system 
-- **Azure Data Factory** 
-    - can build/define & schedule data pipelines to transfer & transform data 
-    - can integrate with other Azure services, used by data engineers to ETL 
-- **Azure Synapse Analytics**  
-    - comprehensive, unified data anlytics solution that provides a single service interface for: 
-        - pipelines using data factory tech
-        - SQL db engine for DW workloads 
-        - Apache Spark (java, scala, python & sql)
-        - Azure Synapes data explorer: High Perf data anlytics optimized for RT log queries and telemtry data using Kusto Query Language (KQL) 
-- **Azure Databricks** 
-    - Azure integrated version of Databricks platform which combines apache spark data processing, with SQL db semantics and an integrated management interface to enable large-scale data analytics 
-    - used by data eng for analytical data stores for data scientists & allows data analysts to use their notebook to visualize and do basic queries 
-- **Azure HDInsight** (Apache ecosystem - hadoop, spark, HBase & Kafka)
-    - provides azure hosted clusters for apache OSS data processing tech
-    - Apache Spark: distr data processing system
-    - Apache Hadoop: distr system that uses MapReduce to process large volumes of data efficiently across multiple cluster nodes - can be written in Java or through Hive SQL API 
-    - Apache HBase - OSS for NoSQL data storage & queries
-    - Apache Kafka - message broker for data stream processing  
-    - primarily used by data engineers to support large analytics workloads using a variety of Apache software
-- **Azure Stream Analytics** 
-    - RT streaming engine that catpures stream of data from an input, applies a query to extract & manipulate data from the stream & writes output for analysis or further processing 
-    - Data Eng can use this into data archs that capture streaming data for ingestion or RT visuals/reports 
-- **Azure Data Explorer** 
-    - stand alone service that offers same high perf queries of log & telemetry data as Azure synapse data explorer 
-    - can be used by analysts to query & analyze data that includes timestamps... 
-- **Microsoft Purview** 
-    - enterprise-wide data govn and discoverability 
-    - creat a *MAP* of data and track data lineage across multiple data sources & systems enabling trustworthy data for analysis & reporting 
-    - Data Eng used to enforce data govn across enterprise and ensure integrity of data
-- **Microsoft Power BI** 
-    - platform for analytical data modeling and reporting used by data anlysts to create & share interactive data visualizations & reports 
-    - can be created through desktop app, and published through web reports and even Mobile 
+
 
 
 # Explore Relational Data in Azure
@@ -657,9 +626,18 @@ EXEC RenameProduct 201, 'Spanner';
 
 # Explore Data Analytics in Azure 
 
+- **Analytics Categories**
+    - Descriptive analytics: What is happening? 
+    - Diagnostic analytics: WHY is this happening? 
+    - Predictive analytics: What *will* happen? 
+    - Prescriptive analytics: Optimize - What action should we take? 
+    - Cognitive analytics: NLG, LLMs, Image/Video generation 
+- Volume, Variety, Velocity 
+
 ## Data Warehousing - BI & Analytics
 - large scale DW support BI, usually moving data from transactional data stores into RDBMS with a designed big schema optimized for queries & model dev 
 - Big Data processing involves large volumes of data in multiple formats - which is batch loaded and stored in a data lake where distr processing engines (Apache Spark) are used to process it 
+- MPP is about separating storage from compute - so that you have your data in one spot, and you can scale your compute servers to as many as you want to perform processing on demand
 
 ### DW Arch & Process
 <div style="width:1024px"> 
@@ -671,7 +649,7 @@ EXEC RenameProduct 201, 'Spanner';
 
 1. **Data Ingestion & Processing** 
     - reading data from transactional data stores, file, RT streams, etc... all get loaded into data lake or DW 
-    - typically performs ETL or ELT so that landed data is optimized for analytical queries 
+    - typically performs ETL or ELT so that landed data is optimized for analytical queries (cleaned, filtered, agg, transformed...)
     - large scale data ingestion best done using pipelines created through Azure Data Factory or Synapse Analytics 
     - one or more activities that operate on data reading from input through combinations, manipulations etc... to create final output 
     - pipeline activities can use built-in or use *linked services* to load and process data - so you can use right tech for each step fo the workflow: 
@@ -680,9 +658,10 @@ EXEC RenameProduct 201, 'Spanner';
 2. **Analytical Data Store - DW or DL** 
     - the relational DW itself, filesystem based data lakes, or hybrid arch data lakehouse 
     - DW is relational DB where data is stored in a schema that's optimized for analytics rather than transactional workloads 
-        - generally stored in star schema format with fact & dimension tables... or expanded into a "snowflake" schema 
-        - great for structured data and SQL analysis 
-    - DL data lake is typically a distr file store with Hi Perf data access 
+        - generally stored in star schema format with fact (quant/measures) & dimension (qual/classification) tables... or expanded into a "snowflake" schema 
+        - great for structured data and SQL analysis typically around particular use-case 
+        - often has compute power built in with the storage feature (BigQuery, Teradata, Redshift, Synapse...)
+    - DL data lake is typically a distr file store with Hi Perf data access (typically obj storage)
         - usually Spark/Hadoop is used to query these stored files for reporting/analytics 
         - "schema-on-read" where semi-struct data is read for analysis, but doesn't matter the format once stored 
         - can handle full mix of data without schema write constraints 
@@ -692,26 +671,74 @@ EXEC RenameProduct 201, 'Spanner';
             - Synapse analytics supports a Lake Database approach where you can use DB Templates to define relational schema of DW - while storing in Data lake 
         - Delta Lake (databricks approach) adds relational storage capabilities to spark : define tables that enforce schema & transactional consistency... 
             - it can batch load or handle streaming services & provides a SQL API for queries 
-    - Azure Synapse Analytics: 
-        - e2e solution for data analytics (analytics platform) combining data integrity, scalable HiPerf SQL server with relational DW flexibility of data lake and apache spark 
-        - native support for log & telemetry analytics with Data explorer pools, data pipelines for data ingestion & transformation
-        - through a single UI called Studio - create interactive notebooks with spark code/markdown content... 
-        - can use SQL or Apache Spark to query data
-        - single UNIFIED analytics solution on Azure 
-    - Azure Databricks: 
-        - azure implementation of databricks a comprehensive data analytics solution built on Apache Spark with native SQL capabilities & workload optimized spark clusters for analytics & data science 
-        - interactive UI and cloud extensibility as it runs on multi-cloud
-    - Azure HDInsight: 
-        - OSS framework support for Hadoop etc... Can take more admin work 
+    - Azure offers: *Azure Synapse Analytics*: Data ingestion, DW & Data analytics, *Azure Databricks*: vendor for Spark, *Azure HDInsight*: OSS framework support for Hadoop etc... Can take more admin work 
 
 3. Analytical Data Model 
     - while analysts & data scientists can work with data directly in the data store - it's easier to aggregate
     - Common aggregation of data is "cubes" metrics aggregated across predefined hierarchical dimensions that allow you to drill down/up
-    - relate data values & dimensional entities... 
+    - relate data values & dimensional entities...  
+
 4. Data Visualization 
     - analysts consume data from analytical models & analytical stores to create reports/dashboards etc... 
     - either self service reports, or go to common dashboard view 
     - shows trends, comparisons, KPIs, etc.. all with security controls and ability to export & share and explore 
+
+### Big Data Ecosystem
+- **Apache Hadoop**: create datasets with variety of data 
+    - use HDFS to store your data 
+    - use MapReduce jobs in Java/Python etc... - MPP distr compute across multiple servers all running in parallel
+    - HIVE: Query using SQL 
+    - Spark: Process in memory - can be 10x + faster than mapreduce
+        - can become very popular and can handle analytics, dataprocessing & ML... 
+- **Databricks**: private company for Apache Spark 
+    - automated cluster management and make it easy to run spark with enhancements 
+
+- **Apache Parquet**: Open source columnar format which allows high compression (efficient storage) & fast reads
+    - supported in general by data factory, DL storage, Blob storage, synapse... 
+
+### Analytics Azure Tools & Services 
+
+- **Azure Data Factory** 
+    - can build/define & schedule data pipelines to transfer & transform data 
+    - can integrate with other Azure services, used by data engineers to ETL 
+- **Azure Synapse Analytics**  
+    - e2e solution for data analytics (analytics platform) combining data integrity, scalable HiPerf SQL server with relational DW flexibility of data lake and apache spark
+    - comprehensive, unified data anlytics solution that provides a single service interface for: 
+        - pipelines using data factory tech
+        - SQL db engine for DW workloads 
+        - Apache Spark (java, scala, python & sql)
+        - Azure Synapes data explorer: High Perf data anlytics optimized for RT log queries and telemtry data using Kusto Query Language (KQL) 
+    - native support for log & telemetry analytics with Data explorer pools, data pipelines for data ingestion & transformation
+    - through a single UI called Studio - create interactive notebooks with spark code/markdown content... 
+    - can create SQL or Apache Spark pools to query data
+    - single UNIFIED analytics solution on Azure 
+- **Azure Databricks** 
+    - Azure integrated version of Databricks platform which combines apache spark data processing, with SQL db semantics and an integrated management interface to enable large-scale data analytics 
+    - used by data eng for analytical data stores for data scientists & allows data analysts to use their notebook to visualize and do basic queries 
+    - can consume data from SQL database, event hubs & cosmos DB 
+    - azure implementation of databricks a comprehensive data analytics solution built on Apache Spark with native SQL capabilities & workload optimized spark clusters for analytics & data science 
+    - interactive UI and cloud extensibility as it runs on multi-cloud
+- **Azure HDInsight** (Apache ecosystem - hadoop, spark, HBase & Kafka)
+    - provides azure hosted clusters for apache OSS data processing tech
+    - Apache Spark: distr data processing system
+    - Apache Hadoop: distr system that uses MapReduce to process large volumes of data efficiently across multiple cluster nodes - can be written in Java or through Hive SQL API 
+    - Apache HBase - OSS for NoSQL data storage & queries
+    - Apache Kafka - message broker for data stream processing  
+    - primarily used by data engineers to support large analytics workloads using a variety of Apache software
+- **Azure Stream Analytics** 
+    - RT streaming engine that catpures stream of data from an input, applies a query to extract & manipulate data from the stream & writes output for analysis or further processing 
+    - Data Eng can use this into data archs that capture streaming data for ingestion or RT visuals/reports 
+- **Azure Data Explorer** 
+    - stand alone service that offers same high perf queries of log & telemetry data as Azure synapse data explorer 
+    - can be used by analysts to query & analyze data that includes timestamps...
+    - SERVERLESS that builds complex data pipelines (ETL/ELT)
+- **Microsoft Purview** 
+    - enterprise-wide data govn and discoverability 
+    - creat a *MAP* of data and track data lineage across multiple data sources & systems enabling trustworthy data for analysis & reporting 
+    - Data Eng used to enforce data govn across enterprise and ensure integrity of data
+- **Microsoft Power BI** 
+    - platform for analytical data modeling and reporting used by data anlysts to create & share interactive data visualizations & reports 
+    - can be created through desktop app, and published through web reports and even Mobile 
 
 ## RT/Streaming Analytics 
 - much data can be processed as a *stream* of data - enabling systems that reveal RT insights/trends or respond immediately 
@@ -719,7 +746,8 @@ EXEC RenameProduct 201, 'Spanner';
 ### Batch vs Streaming
 - data processing is conversion of data to meaningful info and typically occurs through batch or streaming 
 
-- **Batch Processing**: multiple data records are collected & stored before being processed together in a single operation
+- **Batch Processing**: multiple data records are collected & stored before being processed together in a single operation 
+    - buffering & processing data in groups - often set on a particular schedule or based on events/actions
     - if data records were cars - batch processing is like getting cars into a parking lot and then running counts on them 
     - great for "bulk" jobs, grouping many small jobs into one big one that can often be scheduled during off-hours 
     - because its typically processing a LARGE amount of info all at once 

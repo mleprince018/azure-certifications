@@ -4,6 +4,7 @@
 - Main page with learning paths and link to practice exam: https://learn.microsoft.com/en-us/certifications/azure-fundamentals/ 
 - Study guide: https://learn.microsoft.com/en-us/certifications/resources/study-guides/AZ-900 
 - [My notes I used to pass the exam](./AZ-900%20Azure%20Fundamentals.md)
+- Step through the questions here so you can get familiar with what it will feel like on exam day: aka.ms/examdemo (10 min)
 
 ## My Study Path & Exam Review 
 > NOTE: Several years ago - I took the AWS Cloud Practitioner & AWS Solutions Architect. I came into this study & exam with basic knowledge of cloud fundamentals & usage. 
@@ -45,5 +46,6 @@
 - [AZ data fundamentals cert](https://learn.microsoft.com/en-us/certifications/azure-data-fundamentals/?WT.mc_id=Azure_blog-wwl) 
 - [az architect storage infra - learning path](https://learn.microsoft.com/en-us/training/paths/architect-storage-infrastructure/?source=recommendations)
 - [Azure Cost Mgt & Billing](https://learn.microsoft.com/en-us/training/paths/control-spending-manage-bills/)
-- for exam interfaces: aka.ms/examdemo 
-- [Cloud Adoption Framework](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/)
+
+- [Cloud Adoption Framework](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/) 
+- [SQL Server Labs & Lessons](https://microsoft.github.io/sqlworkshops/?WT.mc_id=azuresql4beg_azuresql-ch9-code)

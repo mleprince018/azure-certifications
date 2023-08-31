@@ -93,10 +93,11 @@
 - **Non-relational Databases**: data management systems that don't apply a relational schema to the database - AKA NoSQL database, even if they do support some variant of SQL. Come in 4 types:
     - *Key-Value Databases*: key & value, where value is anything 
         - ~ Hash Map - where you have a key (unique ID) and a value - string, complex obj or JSON file... 
-        - simple lookups using query by keys (NOT optimized for query by values) - basically you MUST use a key to store/retrieve your value
+        - *simple lookups* using query by keys (NOT optimized for query by values) - basically you MUST use a key to store/retrieve your value
         - generally used for session info or caching data  
         - Best for Azure Cosmos Table DB API or Azure Table Storage 
     - *Document Databases*: key-value where value is a JSON that system can parse & query 
+        - optimized for retrieval
         - can have a root object with attributes, child attributes and arrays that can hold sets of information for a particular attribute 
         - unique ID (key) is usually very important as it is how they are retrieved - as these are often indexed 
         - app defined schema: allows application to handle variations in data 
@@ -123,14 +124,15 @@
         - In general, the workloads are: heavy writes & moderate reads with quick processing 
     - generally store data as row storage for processing small transactions
 - this work is often called OLTP (OnLine Transactional Processing)
+- uses highly normalized, CRUD optimized relational databases
 
-- They often rely on a database where data storage is optimized for r/w operations where data is CRUD (created, retrieved/read, updated, deleted)
+- They often rely on a relational database where data storage is optimized for r/w operations where data is CRUD (created, retrieved/read, updated, deleted)
 - To ensure integrity/transactional integrity of the data, it needs to follow **ACID**: (generally supported by RDBMS)
     - *Atomicity*: each transaction is treated as a single unit which succeeds or fails completely 
         - For example to transfer funds, it must debit one and credit the other. If either one fails, the entire action should fail.
     - *Consistency*: transactions can only take data in the db from one valid state to another 
         - Transfer funds example - there is a "before" funds transferred and "after" funds transferred 
-    - *Isolation*: concurrent transactions cannot interfere and must remain independent 
+    - *Isolation*: concurrent transactions cannot interfere and must remain independent - if you read during a transaction - you see a valid state
         - while transfer funds is occurring, when user looks at account balance the value retrieved must reflect the action !!! Better example here
     - *Durability*: when a transaction has been committed, it will remain committed 
         - after transfer complete, if DB restarts the transaction should remain completed and not retry, or be forgotten 
@@ -144,6 +146,7 @@
     - generally recommend Synapse for this 
 - because it is queried en-masse, data is often stored by columns rather than rows 
     - this enables high compression (efficient use of space) AND the ability to partition/distribute data across multiple nodes => parallel processing 
+- uses denormalized read-optimized storage systems
 
 - Common Enterprise flow: 
     - Data files stored in data lake
@@ -168,7 +171,7 @@
     - in the real world things are not as clear, and sometimes a person might perform multiple roles 
     - various roles orgs apply to data professionals, the tasks and responsibilities and the MSFT azure services they might use
 
-- **DB Admins** : manage db, assign permissions to users, store backup copies of data & restore during failure/recovery 
+- **DB Admins** : install, upgrade, manage db, assign permissions (auth) to users, store backup copies of data & restore during failure/recovery 
     - responsible for design, implementation, maintenance and operation of on-prem/cloud databases 
     - responsible for avail, performance, & health of db - and setup DR/HA with RTO/RPO 
     - manage security of data by granting privileges or denying access as appropriate 
@@ -206,8 +209,7 @@
 - **Azure Storage** (storage accounts)
     - a core Azure service that allows you to store data in BLOB containers, file shares & tables (key-value storage for apps that need to r/w values quickly)
     - data engineers use azure storage to host data lakes using special BLOB storage with hierarchical namespace that enables files to be organized folders in a distr file system 
-
-
+- **Azure Cache for Redis** - in-memory data cache 
 
 # Explore Relational Data in Azure
 - data was often in its own unique structure that was inefficient, hard to maintain and hard to optimize for app performance or use for analytics 
@@ -223,7 +225,7 @@
     - each column is an attribute or piece of information that describes or provides context around the obj/event 
 - Sometimes info can be missing (NULL) 
 - columns are often a particular datatype (date, integer, string, decimal, ...)
-- **Normalization** is a term used by db professionals for schema design process that minimizes data duplication (efficient storage) & enforce data integrity 
+- **Normalization** is a term used by db professionals for schema design process that minimizes data duplication (efficient storage) & enforce data integrity & optimize updates
     - while there are many complex rules that go into refactoring the various forms of normalization it boils down to: 
     1. separate each entity into its own table 
     2. separate each discrete attribute into its own column 
@@ -263,6 +265,22 @@ TO user1;
     - DML manipulates rows in tables - to retrieve/query data, insert new rows, modify existing, or delete rows 
     - SELECT/INSERT/UPDATE/DELETE 
     - insert does 1 row at a time, the others apply to the ENTIRE table - use where clauses to segment data your update/select/delete action is performed on
+    - below example copies data from one table to another in MSFT T-SQL
+```sql
+SELECT c.FirstName, c.LastName, e.JobTitle, a.AddressLine1, a.City,   
+    sp.Name AS [State/Province], a.PostalCode  
+INTO dbo.EmployeeAddresses  
+FROM Person.Person AS c  
+    JOIN HumanResources.Employee AS e   
+    ON e.BusinessEntityID = c.BusinessEntityID  
+    JOIN Person.BusinessEntityAddress AS bea  
+    ON e.BusinessEntityID = bea.BusinessEntityID  
+    JOIN Person.Address AS a  
+    ON bea.AddressID = a.AddressID  
+    JOIN Person.StateProvince as sp   
+    ON sp.StateProvinceID = a.StateProvinceID;  
+GO
+```
 - **Transaction Control Language TCL** (from Udemy course)
     - Controls transactions within a DB - COMMIT/ROLLBACK 
 
@@ -271,7 +289,7 @@ TO user1;
 - **View** - virtual table based on results of select query - a "window" on specified rows or underlying tables 
     - access this as a "table" and it runs the pre-defined query behind the scenes to generate a table that you can then use
     - great way to add calc cols, join multi tables, or filter unnecessary cols 
-- **Stored Procedure** - defines SQL statements that can be run on command (a program)
+- **Stored Procedure** - defines SQL statements that can be run on command (a program/function)
     - store program logic in a db for actions that apps need to perform when working with data 
     - (change name of product name of given ID) - you pass the ID and the new product name and it does the change!
 ```sql
@@ -307,9 +325,10 @@ EXEC RenameProduct 201, 'Spanner';
 - for Azure SQL Database - you can re-use your existing enterprise license for SQL server
 
 - **SQL Server on Azure VMs**: IaaS solution that virtualizes hardware as a VM running in Azure with installation of SQL server 
-    - you pick the SQL Server edition (Enterprise, Standard, Web... free license on a particular OS)
+    - you pick the SQL Server edition (Enterprise, Standard, Web... free license on a particular OS) & it deploys
     - *Use-cases*: Great for lift n shift migrations OR when you need FULL control over all aspects of server OS & db config OR rapid dev & test of ideas without on-prem, non-prod SQL server 
     - *Compatibility*: Fully compatible with on-prem MS SQL enabling lift n shift without changes 
+        - if you run the VM on linux, there are limited features. Only windows has FULL support of all features. 
     - *Tech Stack*: MS SQL DBMS installed on a single VM - can run multiple DB on that VM 
     - *Owner Responsibility*: you MUST manage all aspects from OS on up - all dbms updates, configs, backups etc... 
     - mimics on-prem MSFT SQL - just running in Azure 
@@ -319,6 +338,7 @@ EXEC RenameProduct 201, 'Spanner';
     - can use same set of server products, dev tools & expertise across envm 
 
 - [**Azure SQL Managed Instance**](https://learn.microsoft.com/en-us/azure/azure-sql/managed-instance/sql-managed-instance-paas-overview?view=azuresql): PaaS middle option that provides with middle option between IaaS & full PaaS
+    - can create single instance or an Azure Arc managed instance
     - *Use-cases*: general cloud migration to Azure with minimal app changes
         - if you used linked servers, service broker (message system to distr work across servers), or db mail - should use managed instance
         - can be deployed on-prem or in another cloud using Azure Arc
@@ -433,6 +453,13 @@ EXEC RenameProduct 201, 'Spanner';
     - pgAdmin can be used to manage/monitor PSQL db, and can be used to connect to Azure DB for PSQL - but you can't do backup/restore as that's managed by Az now
     - stores audit trail of querires run in db called `azure_sys` and can query the `query_store.qs_view` table to view it and monitor queries run 
 
+### Database Tools
+- **Azure Data Studio** - DBeaver, database dekstop tool that can access Azure SQL family & Postgresql
+- **MySQL Workbench** - desktop tool for MySQL & Maria DB
+- **SQL Server Mgt Studio** - Admin GUI for SQL Server - meant for DBAs - can access SQL Server, Azure SQL DB & Managed Instance
+- **SQL Server Data Tools** - build relational dbs, analysis services, reporting... 
+- **sqlcmd** - cmd line for SQL
+
 # Explore Storage Account Data in Azure 
 - many software apps need to store data, when not in relational databases using SQL, there are many options 
 - need a storage account for Disks, Queues, Blob, Files, Tables or DL storage 
@@ -469,9 +496,10 @@ EXEC RenameProduct 201, 'Spanner';
     - optimized to support random r/w ops and can fetch and store data for a single page if necessary 
     - can hold a max of 8 TB of data
     - can be used as virtual disk storage for VMs 
-    - backbone of Az Disks
+    - backbone of Az Disks - VHDs (Virtual Hard Disks)
 - **Append Blobs**: block blob optimized for appends
-    - you can only add blocks to the end of an append blob, updating or deleting existing blocks isn't supported 
+    - you can only add blocks to the end of an append blob
+    - updating or deleting existing blocks (the file itself) isn't supported 
     - blocks can vary in size up to 4 MB, max size is 195 GB 
 
 - Storage tiers of Hot, Cool & Archive... 
@@ -486,6 +514,8 @@ EXEC RenameProduct 201, 'Spanner';
     - upgrading/altering a storage account to support hierarchical namespace is NOT reversible, once done, you are stuck with it 
     - from [hierarchical namespace](https://learn.microsoft.com/en-us/azure/storage/blobs/data-lake-storage-namespace): appears to enable file system setup of directories UNDER a container - unlike standard blob storage 
 - because it has hierarchical "folders" you can put RBAC ACL on the files/folders 
+- Gen2 is also compatible with HDFS and Apache hadoop workloads 
+    - can feed Data Factory, Databricks, HDInsight, DL analytics, Stream analytics... 
 
 ![DL Storage Gen2](./pictures/DP-900/azure-data-lake-storage-structure.png)
 > NOTE THE HIERARCHICAL NAMESPACE - DIFFERENT FROM PLAIN BLOB STORAGE 
@@ -502,14 +532,15 @@ EXEC RenameProduct 201, 'Spanner';
 - after you've created a storage account, you can upload through Az Portal, AzCopy or Az File Synch 
 - **Standard Tier**: HDD hardware **Premium Tier**: SSDs - higher throughput for extra $
 - NFS Protocol used by linux/macOS -> requires Premium tier storage and VNET through which access can be controlled 
-- SMB (server message block) for common connections
+- SMB (server message block) for common connections 
 
 ## Azure Tables 
 - a NoSQL storage solution that uses tables containing key/value data items - *NOT like a relational db table*
 - enables storage of semi-struct data ==> in general cosmosDB is preferred over this 
 - by default only supports read replicas in other regions, use cosmosdb for multi-region writes
 - The unique KEY in the table is: (Partition key & row key) 
-    - items in partition are stored in row key order 
+    - *items in partition are stored in row key order* 
+    - They do NOT use indexes 
     - allows an app to perform simple & point queries that ID a single row & range queries that fetch a block of rows in a partition 
 - when you modify data, a timestamp col records dttm of modification made - after that, any other columns needed are entirely up to the user
 - No concept of FKs, relationships, stored procs, views... that come with relational db 
@@ -564,9 +595,11 @@ EXEC RenameProduct 201, 'Spanner';
         - Container ~ table - BUT it has you specify a *partition key* 
             - this is how cosmos DB get's its global distr by breaking up table across many machines all over - this tells you how to break the table apart 
         - Item ~ Rows - your key:document 
+    - document databases are optimized for retrieval
 - **Cosmos DB for MongoDB**: popular OSS db which data is stored in Binary JSON (BSON) 
     - great for migrating from MongoDB 
-    - can use MQL: compact, obj oriented syntax where devs use objects to call methods (dot operators like js `db.products.find({id: 123})`)
+    - can use MQL: compact, obj oriented syntax where devs use objects to call methods (dot operators like js `db.products.find({id: 123})`) 
+        - this is NOT similar to SQL
     - split your data on multiple "shards" rather than partitions, and they use "collections" rather than containers 
     - Database >> Collection >> Document
 - **Cosmos DB for PSQL**: native PSQL globally distr db that auto shards data so you can build highly scalable apps  
@@ -578,6 +611,7 @@ EXEC RenameProduct 201, 'Spanner';
     - Entities are "rows" with a partition key & row key 
 - **Cosmos DB for Apache Cassandra**: OSS db with column family struct where each row doesn't have to have the same cols
     - great for migrating apache cassandra over to azure 
+    - uses a syntax similar to SQL
     - they have a Keyspace >> Table >> Row
 - **Cosmos DB for Apache Gremlin**: data in a graph structure
     - entities are defined as vertices that form nodes in a connected graph 
@@ -631,7 +665,7 @@ EXEC RenameProduct 201, 'Spanner';
     - Diagnostic analytics: WHY is this happening? 
     - Predictive analytics: What *will* happen? 
     - Prescriptive analytics: Optimize - What action should we take? 
-    - Cognitive analytics: NLG, LLMs, Image/Video generation 
+    - Cognitive analytics: Deep Learning, ML, NLG, LLMs, Image/Video generation 
 - Volume, Variety, Velocity 
 
 ## Data Warehousing - BI & Analytics
@@ -639,12 +673,24 @@ EXEC RenameProduct 201, 'Spanner';
 - Big Data processing involves large volumes of data in multiple formats - which is batch loaded and stored in a data lake where distr processing engines (Apache Spark) are used to process it 
 - MPP is about separating storage from compute - so that you have your data in one spot, and you can scale your compute servers to as many as you want to perform processing on demand
 
+### Big Data Ecosystem
+- **Apache Hadoop**: create datasets with variety of data 
+    - use HDFS to store your data 
+    - use MapReduce jobs in Java/Python etc... - MPP distr compute across multiple servers all running in parallel
+    - HIVE: Query using SQL 
+    - Spark: Process in memory - can be 10x + faster than mapreduce
+        - can become very popular and can handle analytics, dataprocessing & ML... 
+        - language to use spark API is python or Scala
+- **Databricks**: private company for Apache Spark 
+    - automated cluster management and make it easy to run spark with enhancements 
+
+- **Apache Parquet**: Open source columnar format which allows high compression (efficient storage) & fast reads
+    - supported in general by data factory, DL storage, Blob storage, synapse... 
+
 ### DW Arch & Process
 <div style="width:1024px"> 
 
 ![Data Warehousing Process Flow](./pictures/DP-900/modern-data-warehousing.png)
-
-![Data Warehouse ETL](./pictures/DP-900/DW-data-ingestion-pipeline.png)
 </div>
 
 1. **Data Ingestion & Processing** 
@@ -683,41 +729,64 @@ EXEC RenameProduct 201, 'Spanner';
     - either self service reports, or go to common dashboard view 
     - shows trends, comparisons, KPIs, etc.. all with security controls and ability to export & share and explore 
 
-### Big Data Ecosystem
-- **Apache Hadoop**: create datasets with variety of data 
-    - use HDFS to store your data 
-    - use MapReduce jobs in Java/Python etc... - MPP distr compute across multiple servers all running in parallel
-    - HIVE: Query using SQL 
-    - Spark: Process in memory - can be 10x + faster than mapreduce
-        - can become very popular and can handle analytics, dataprocessing & ML... 
-- **Databricks**: private company for Apache Spark 
-    - automated cluster management and make it easy to run spark with enhancements 
-
-- **Apache Parquet**: Open source columnar format which allows high compression (efficient storage) & fast reads
-    - supported in general by data factory, DL storage, Blob storage, synapse... 
-
 ### Analytics Azure Tools & Services 
+<div style="width:1024px"> 
+
+![Data Warehouse ETL](./pictures/DP-900/DW-data-ingestion-pipeline.png)
+</div>
 
 - **Azure Data Factory** 
+    - fully managed serverless service to build complex data pipelines - can ingest data from over 90 built-in connectors 
     - can build/define & schedule data pipelines to transfer & transform data 
-    - can integrate with other Azure services, used by data engineers to ETL 
+    - can integrate with other Azure services, CI/CD and used by data engineers to ETL 
+    - can also manage SSIS (SQL Server Integration Services packages) 
+    - can run Polybase 
+- **Components of Data Factory**
+- Pipelines: group of activities that can be scheduled
+    - you chain these activities together 
+    - activities can be boiled down to 3 things:
+        - data movement (copy data, etc)
+        - data transformation
+        - control flow (filter... loops, controls, switches...) 
+- Data Flow: create & manage data transformation logic 
+    - often executres logic on spark cluster which spins up and runtime and cleans itself up once the job is done 
+- Linked Service: created/existing connections to external sources - needs to be created first
+- Dataset: representation of data structure within data store  
+- Integration runtime - the compute infra behind data factory that "runs" the queries you are submitting 
+    - can either do azure, self hosted, or azure SSIS - using existing SSIS packages to execute 
+- Triggers - can define triggering events/times for pipelines to run
+
+![Synapse Overview](./pictures/DP-900/synapse-overview.png)
 - **Azure Synapse Analytics**  
-    - e2e solution for data analytics (analytics platform) combining data integrity, scalable HiPerf SQL server with relational DW flexibility of data lake and apache spark
+    - e2e solution for data integration, EDW & Data analytics
+    - analytics (analytics platform) combining data integrity, scalable HiPerf SQL server with relational DW flexibility of data lake and apache spark
     - comprehensive, unified data anlytics solution that provides a single service interface for: 
         - pipelines using data factory tech
         - SQL db engine for DW workloads 
         - Apache Spark (java, scala, python & sql)
-        - Azure Synapes data explorer: High Perf data anlytics optimized for RT log queries and telemtry data using Kusto Query Language (KQL) 
+        - Azure Synapse data explorer: High Perf data anlytics optimized for RT log queries and telemtry data using Kusto Query Language (KQL) 
     - native support for log & telemetry analytics with Data explorer pools, data pipelines for data ingestion & transformation
-    - through a single UI called Studio - create interactive notebooks with spark code/markdown content... 
-    - can create SQL or Apache Spark pools to query data
-    - single UNIFIED analytics solution on Azure 
+        - single UNIFIED analytics solution on Azure - with integration with cosmosDB, PowerBI & Azure ML 
+    - through a single UI called Studio you can create SQL or Apache Spark pools to query data
+    - can use SQL Pools (Dedicated vs serverless) 
+        - can use Polybase here for T-SQL complex reporting or data ingestion for cross-queries, etc 
+            - makes external data sources appear like tables 
+        - can pause the SQL pool to reduce compute costs
+    - can use apache spark pools: create interactive notebooks with spark code/markdown content... or running batch spark jobs 
+        - best for data prep & ML 
+        - Azure Synapse Analytics Spark pools do not directly support graph or relational databases.
+        - can work with column-family databases
+    - stored data in DL Gen2 storage in parquet, csv, JSON 
+    - can only mount Blob storage & DL Gen2
+        - cannot mount az file shares or az table storage
+    
+
 - **Azure Databricks** 
     - Azure integrated version of Databricks platform which combines apache spark data processing, with SQL db semantics and an integrated management interface to enable large-scale data analytics 
     - used by data eng for analytical data stores for data scientists & allows data analysts to use their notebook to visualize and do basic queries 
     - can consume data from SQL database, event hubs & cosmos DB 
     - azure implementation of databricks a comprehensive data analytics solution built on Apache Spark with native SQL capabilities & workload optimized spark clusters for analytics & data science 
-    - interactive UI and cloud extensibility as it runs on multi-cloud
+    - interactive UI and cloud extensibility as it runs on multi-cloud (can be used for compatibility on multi-cloud)
 - **Azure HDInsight** (Apache ecosystem - hadoop, spark, HBase & Kafka)
     - provides azure hosted clusters for apache OSS data processing tech
     - Apache Spark: distr data processing system
@@ -730,8 +799,8 @@ EXEC RenameProduct 201, 'Spanner';
     - Data Eng can use this into data archs that capture streaming data for ingestion or RT visuals/reports 
 - **Azure Data Explorer** 
     - stand alone service that offers same high perf queries of log & telemetry data as Azure synapse data explorer 
+    - on-demand analysis of large volumes of data from text logs, websites & IoT devices using a common query language for all data sources 
     - can be used by analysts to query & analyze data that includes timestamps...
-    - SERVERLESS that builds complex data pipelines (ETL/ELT)
 - **Microsoft Purview** 
     - enterprise-wide data govn and discoverability 
     - creat a *MAP* of data and track data lineage across multiple data sources & systems enabling trustworthy data for analysis & reporting 
@@ -754,6 +823,8 @@ EXEC RenameProduct 201, 'Spanner';
         - needs to wait until ALL data is available prior to processing - cannot do piecemeal or one bit at a time to "get ahead" 
         - it can take awhile to get results 
         - error iterations can take a LOOOONG time and be painful to resolve 
+    - typically begins when certain conditions are met (all data is present, event/action or time/schedule) 
+        - Azure Data Factory & Synapse Analytics can build pipelines that help you respond to conditions/events
 
 - **Streaming Processing**: source of data is constantly monitored and processed in RT as new data events occur 
     - if data records were cars - streaming processing is like counting as the cars go by 
@@ -861,13 +932,20 @@ EXEC RenameProduct 201, 'Spanner';
 - Many data visualization tools out there like Excel, widgets in notebooks... 
 - If you need enterprise-scale biz analytics, and an integrated tool that can support complex data modeling, interactive reporting and secured sharing... then you need POWER BI
 
-
 - **PowerBI** : suite of tools & services that data analysts can use to build interactive data viz for biz users 
-- typical workflow begins with **Power BI desktop** 
+- Generally begins with **Power BI desktop** (only works on Windows)
     - you can import data from a range of data sources, combine & org data from all sources into an analytics data model & create reports that contain interactive viz of the data 
-- With reports created, you publish them to **Power BI Service** - a cloud service where reports can then be consumed by biz users in browser or *Power BI mobile app* 
+    - can do reporting & do basic data modeling and supports more data sources (SQL DB, Spark, etc...)
+- With reports created, you publish them to **Power BI Service** - a [SaaS cloud service](app.powerbi.com) where reports can then be consumed by biz users in browser or *Power BI mobile app* 
     - Full functionality for viewing reports is within the desktop app 
+    - Report visuals within your PowerBI reports can be published to a particular dashboard, so that your different users with different reports can all feed and create a comprehensive dashboard
 - Power BI Service can be set to refresh the data on regular intervals, share reports with others, and define dashboards/apps that combine related reports into a single, easy to consume location 
+- **PowerBI Report Builder** - standalone tool to author reports - for pdfs or printed reports 
+
+1. Create a report with PowerBI Service/Desktop or Report Builder 
+2. Share it to PowerBI service 
+3. View & interact with report and create dashboards using PowerBI service 
+4. can access from PowerBI Mobile as needed 
 
 ### Data Modeling Concepts 
 > NOTE: This is not the analytics and statistical analysis of data modeling - this is reporting data structure
@@ -896,9 +974,9 @@ EXEC RenameProduct 201, 'Spanner';
     - OLAP cube can pre-agg by all these so you can expand into each one and see details 
 
 ### Designing Reports/Dashboards with common Charts 
-- **Tables & Text** - simplest way to communicate data
+- **Tables & Text(card)** - simplest way to communicate data
     - tables are useful when numerous values must be displayed 
-    - text values can be used to highlight important figures/metrics 
+    - text values can be used to highlight important figures/metrics  
 - **Bar & Column Charts** - Visually compare numeric values for discrete categories 
 - **Line Charts** - compare categorized values and useful to examine trends over time 
 - **Pie Charts** - show proportions of a total 
@@ -910,3 +988,13 @@ EXEC RenameProduct 201, 'Spanner';
 ### Power BI Usage 
 - 3 views - a report view, table/data view & model 
     - model is for OLAP
+- **Workspace**: container for dashboards, reports, workbooks, datasets... 
+- **Datasets**: collection of data - csv, database, etc... can be reused across different reports 
+- **Report**: One or more pages of visualizations 
+    - must come from at least ONE dataset (every report you create is associated with underlying data)
+    - single report can feed multi dashboards
+- **Paginated Reports**: pixel-perfect multi-page reports for printing/archival  
+    - created in PowerBI report builder 
+- **Dashboard**: Single page visualizations from various reports 
+    - canvas page with multiple tiles 
+    - meant for info at a glance 

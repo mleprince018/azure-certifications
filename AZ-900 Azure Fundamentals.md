@@ -165,11 +165,12 @@
 ### Management Infra - Resources & Resource Groups & Subscriptions and Management Groups
 - Mgt Groups --> Subscriptions --> Resource Groups --> Resources 
 - **Resource**: the building block of Azure, anything you create, provision & deploy  
-- **Resource Groups**: Groupings of resources - any resource must exist within a resource group. 
+- **Resource Groups**: Groupings of resources - any resource must exist within a resource group. Can only be in one Subscription
     - Each resource can only be in one resource group at a time (if you take it out of Resource Group A and put it into B, it is no longer a part of A)
     - Resource Groups cannot be nested 
     - with the above restrictions - resource groups should be designed carefully: a dev environment under 1 entire resource group to be easily provisioned or removed - or a 3 schema compute engine spread across 3 RGs... 
-    - Resource Groups Auto-inherit settings from subscriptions, and resources inherit settings from resource groups. (for current & future resources)
+    - Resource Groups Auto-inherit settings/permissions/policies from subscriptions, and resources inherit settings from resource groups. (for current & future resources)
+        - Tags do NOT cascade
 
 - **Subscriptions**: a unit of management, billing and scale - just how resource groups organize resources, subscriptions allow you to organize your resource groups and facilitate billing
     - Links to an Azure account which is an ID in Azure AD or directory/domain which azure trusts --> this allows you to provide an authenticated & authorized access to provision & use azure products/services. 
@@ -179,6 +180,9 @@
     - *Billing boundary*: determines how an Azure account is billed for - can create multiple subscriptions for different billing reqs with different invoices/reports to allow you to organize & manage costs 
     - *Access control boundary*: access-mgt policies applied at subscription level to reflect org structure and billing to different departments or set policies at dept levels 
         - limit marketing to small VMs for example 
+    - can have certain quotas assigned to limit usage
+    - can have spending limits which you cannot go over, but you can remove the limit (if set)
+    - if it expires - you can't create new resources, but you can always access the data stored there 
 - Reasons to create separate subscriptions: 
     - Environments - dev/test/prod costs & access control set at subscription level 
     - Org Structures - subscriptions to follow org structure and grant/deny access to org structure 
@@ -186,6 +190,7 @@
 
 - **Management Groups** : Groupings of subscriptions to efficiently manage access, policies & compliance for subscriptions
     - All subscriptions within a management group auto-inherit conditions applied to management group
+    - all subscriptions in mgt group should be associated with same Az AD 
     - allow for enterprise-grade management at scale 
         - hierarchy that applies a policy (limit VM locations to US West Region for PROD, and US East for DR)
         - provide user access to multiple subscriptions (allows for single RBAC to grant multi subscription access - rather than multi-RBAC per user)
@@ -945,7 +950,7 @@ Example blob storage full url: `https://*mystorageaccount*.blob.core.windows.net
     - shell which users can run commands called command-lets (cmdlets) - these call az REST API to perform mgt tasks in az 
     - can run simple/complex actions to setup, teardown, or maintain single or groups of resources 
     - deploy infra from imperative code, can create scripts that auto perform these tasks
-    - can be [installed on MacOS](https://learn.microsoft.com/en-us/powershell/azure/install-azps-macos?view=azps-10.2.0)
+    - can be [installed on MacOS, Linux & windows](https://learn.microsoft.com/en-us/powershell/azure/install-azps-macos?view=azps-10.2.0)
 - **az cli**
     - bash interface instead of powershell, with different syntax 
 

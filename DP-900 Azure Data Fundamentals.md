@@ -4,7 +4,7 @@
 ## Common Data Formats
 - Data is a set of info (#s, obsv, desc, pics, graphics...) used to record information 
 - data structures in which data is organized typically represent **ENTITIES** such as customers, products, sales... 
-- Each entity typically has one or more **ATTRIBUTES** or characteristics (name, tyupe, address...)
+- Each entity typically has one or more **ATTRIBUTES** or characteristics (name, type, address...)
 - Comes in 3 general forms: Structured, Semi-Structured, Unstructured 
 
 **Structured Data** : data that adheres to a fixed schema - all data has the same fields/properties and is tabular 
@@ -75,7 +75,7 @@
         - it contains *row groups* ~ partitions of the block of data
         - data for each column is stored together in the same row group 
         - each row group contains one or more chunks of data 
-        - a parquet file includes metadata that describes the set of rows found in neach chunk 
+        - a parquet file includes metadata that describes the set of rows found in each chunk 
         - an application will browse the metadata, and then only read in the row group chunks of data AND the needed columns from those chunks it needs for processing 
         - it can store & process nested data types efficiently and has efficient compression & encoding
 
@@ -569,7 +569,7 @@ EXEC RenameProduct 201, 'Spanner';
 - a NoSQL storage solution that uses tables containing key/value data items - *NOT like a relational db table*
 - enables storage of semi-struct data ==> in general cosmosDB is preferred over this 
 - by default only supports read replicas in other regions, use cosmosdb for multi-region writes
-- The unique KEY in the table is: (Partition key & row key) 
+- *The unique KEY in the table is: (Partition key & row key)* 
     - *items in partition are stored in row key order* 
     - They do NOT use indexes 
     - allows an app to perform simple & point queries that ID a single row & range queries that fetch a block of rows in a partition 
@@ -828,7 +828,8 @@ EXEC RenameProduct 201, 'Spanner';
     - RT streaming engine that catpures stream of data from an input, applies a query to extract & manipulate data from the stream & writes output for analysis or further processing 
     - Data Eng can use this into data archs that capture streaming data for ingestion or RT visuals/reports 
 - **Azure Data Explorer** 
-    - stand alone service that offers same high perf queries of log & telemetry data as Azure synapse data explorer 
+    - stand alone service that allows you to query just about any azure data store 
+        - offers same high perf queries of log & telemetry data as Azure synapse data explorer 
     - on-demand analysis of large volumes of data from text logs, websites & IoT devices using a common query language for all data sources 
     - can be used by analysts to query & analyze data that includes timestamps...
 - **Microsoft Purview** 

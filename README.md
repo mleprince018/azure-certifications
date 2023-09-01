@@ -46,6 +46,5 @@
 - [AZ data fundamentals cert](https://learn.microsoft.com/en-us/certifications/azure-data-fundamentals/?WT.mc_id=Azure_blog-wwl) 
 - [az architect storage infra - learning path](https://learn.microsoft.com/en-us/training/paths/architect-storage-infrastructure/?source=recommendations)
 - [Azure Cost Mgt & Billing](https://learn.microsoft.com/en-us/training/paths/control-spending-manage-bills/)
-
 - [Cloud Adoption Framework](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/) 
 - [SQL Server Labs & Lessons](https://microsoft.github.io/sqlworkshops/?WT.mc_id=azuresql4beg_azuresql-ch9-code)

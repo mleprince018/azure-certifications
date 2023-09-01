@@ -8,7 +8,7 @@
 - Comes in 3 general forms: Structured, Semi-Structured, Unstructured 
 
 **Structured Data** : data that adheres to a fixed schema - all data has the same fields/properties and is tabular 
-- data is stored in 1+ tables where rows represent instannces of the data entity & columns represent attributes of the entity 
+- data is stored in 1+ tables where rows represent instances of the data entity & columns represent attributes of the entity 
 - Generally this is stored in a database where a relational model is used with keys to relate different tables 
 
 **Semi-Structured Data** : Information that has some structure - but allows for variation between entity instances (JSON)
@@ -17,21 +17,21 @@
 - structure is not strict - often stored in noSQL dbs
 
 **Unstructured Data** : Text, pictures, video, audio, binary files... 
-    - pretty much can only be stored in file storage 
-    - block storage of data on disk through Azure Disks 
-    - File Share through Azure Files (NFS) to share across multiple VMs
-    - Object storage to access data via API through Azure Blob Storage 
+- pretty much can only be stored in file storage 
+- block storage of data on disk through Azure Disks 
+- File Share through Azure Files (NFS) to share across multiple VMs
+- Object storage to access data via API through Azure Blob Storage 
 
-- **Data Stores** : store data in a format to record these details/events/info for further analysis 
-    - File Storage (object/block/file system) 
-        - data lakes
-        - file system (NFS)
-        - block (BLOB) storage 
-        - optimized Blob for Data Lake Gen2
-    - Databases
-        - relational DBMS
-        - NoSQL Databases
-        - Analytical Databases 
+**Data Stores** : store data in a format to record these details/events/info for further analysis 
+- File Storage (object/block/file system) 
+    - data lakes
+    - file system (NFS)
+    - block (BLOB) storage 
+    - optimized Blob for Data Lake Gen2
+- Databases
+    - relational DBMS
+    - NoSQL Databases
+    - Analytical Databases 
 
 ## File Storage for data
 - File storage is typically a specific file system, generally a centralized shared file system (often in the cloud) 
@@ -82,51 +82,17 @@
 ## Database Storage 
 - Database is a central system in which data can be stored & queried - a dedicated system for managing data records rather than files
     - while technically it uses file system storage and an organized file system could be a "database" - it is built around data records and not file management 
+> Below has been enhanced with Udemy & info from [data store overview](https://learn.microsoft.com/en-us/azure/architecture/guide/technology-choices/data-store-overview) 
 
-### Relational & Non-relational DB
-- **Relational Databases**: used to store & query structured data 
+### Relational Databases RDBMS
+- *Relational Databases*: used to store & query structured data 
     - Each instance of an entity is assigned a primary key (PK) that uniquely identifies it and these can be stored in other tables to reference each other (customer bought which product...)
     - Can *normalize* a set of tables so that there is elimination of duplicate data values - degree of normalization depends on occurrence of duplicate values 
-    - predefined schema with relationships & constraints 
+        - normalization can be a drawback in certain circumstances as schema on write produces a LOT of upfront work & design and is rigid to changes
+    - predefined schema with relationships & constraints are strictly enforced
+    - can use indexes to optimize query perf
     - tables managed using SQL, typically based on ANSI std 
-> Below has been enhanced with Udemy & info from [data store overview](https://learn.microsoft.com/en-us/azure/architecture/guide/technology-choices/data-store-overview)
-- **Non-relational Databases**: data management systems that don't apply a relational schema to the database - AKA NoSQL database, even if they do support some variant of SQL. Come in 4 types:
-    - *Key-Value Databases*: key & value, where value is anything 
-        - ~ Hash Map - where you have a key (unique ID) and a value - string, complex obj or JSON file... 
-        - *simple lookups* using query by keys (NOT optimized for query by values) - basically you MUST use a key to store/retrieve your value
-        - generally used for session info or caching data  
-        - Best for Azure Cosmos Table DB API or Azure Table Storage 
-    - *Document Databases*: key-value where value is a JSON that system can parse & query 
-        - optimized for retrieval
-        - can have a root object with attributes, child attributes and arrays that can hold sets of information for a particular attribute 
-        - unique ID (key) is usually very important as it is how they are retrieved - as these are often indexed 
-        - app defined schema: allows application to handle variations in data 
-        - definition of "denormalized data" - where all info relating to a particular entity is in ONE table - but multi address could lead to duplication... 
-        - think Azure Cosmos DB NoSQL & MongoDB => you CAN query based on document attributes (customer name...)
-            - product catalog, profile, shopping cart... HIGH Tx entities 
-    - *Column Family Databases*: store tabular data of rows & cols, but columns are in groups known as column-families that store info that's logically related 
-        - you have a number of set of col families ~ relational databases 
-        - best for structured, volatile data -> col family 
-        - rows can be sparse, and don't need value for each column 
-        - Use CosmosDB Cassandra: best for IOT, RT analytics, Fin data, transaction history... 
-    - *Graph Database*: store entities as nodes with links to define relationships between them 
-        - Made up of nodes & edges - edge is the relationship between 2 nodes, and can store info about the node or edge on that node or edge (username on the node, or relationship = friend on the edge)
-        - CosmosDB Apache Gremlin for: fraud detection, org charts, people & relationships for social media...
-    - this allows for the schema to be setup however your application needs it - making it VERY flexible and can easily evolve over time 
-        - often very scalable - CosmosDB 
 
-![Column Family](./pictures/DP-900/column-family-conceptual.png)
-
-## Transactional data processing solutions 
-- records transactions that are specific events and info around the event that the org wants to track (purchases/payments, etc...)
-- These often need to run and perform at scale with high-volume and sometimes handling millions of Tx per day 
-    - Transaction: small, discrete unit of work 
-        - In general, the workloads are: heavy writes & moderate reads with quick processing 
-    - generally store data as row storage for processing small transactions
-- this work is often called OLTP (OnLine Transactional Processing)
-- uses highly normalized, CRUD optimized relational databases
-
-- They often rely on a relational database where data storage is optimized for r/w operations where data is CRUD (created, retrieved/read, updated, deleted)
 - To ensure integrity/transactional integrity of the data, it needs to follow **ACID**: (generally supported by RDBMS)
     - *Atomicity*: each transaction is treated as a single unit which succeeds or fails completely 
         - For example to transfer funds, it must debit one and credit the other. If either one fails, the entire action should fail.
@@ -136,9 +102,59 @@
         - while transfer funds is occurring, when user looks at account balance the value retrieved must reflect the action !!! Better example here
     - *Durability*: when a transaction has been committed, it will remain committed 
         - after transfer complete, if DB restarts the transaction should remain completed and not retry, or be forgotten 
+- RDBMS generally can't scale horizontally without some data sharding/partitioning
+
+### Non-Relational Database Types
+- *Non-relational Databases*: data management systems that don't apply a relational schema to the database - AKA NoSQL database, even if they do support some variant of SQL. Come in 4 types:
+- **Key-Value Databases**: key & value, where value is anything 
+    - ~ Hash Map - where you have a key (unique ID) and a value - string, complex obj or JSON file... 
+    - *simple lookups* using query by keys (NOT optimized for query by values) - basically you MUST use a key to store/retrieve your value 
+        - whenever you update the value, you essentially do a complete overwrite
+        - any structure to the "value" must be defined & maintained by the application storing it 
+        - NO joins, unions... NO aggregations... NO relationships between entities... 
+    - generally used for session info, product recommendation, ad serving, user profile mgt or caching data & is very scalable due to simple design
+    - Best for Azure Cosmos Table DB API or Azure Table Storage or Azure Cache for Redis
+- **Document Databases**: key-value where value is a JSON doc that system can parse & query 
+    - can have a root object with attributes, child attributes and arrays|lists that can hold sets|child collections of information for a particular attribute 
+    - unique ID (key) optimized for retireval - these are indexed and used to pull doc data
+        - documents are retrieved & written as a single block 
+    - app defined schema: allows application to handle variations in data so you don't have to adhere to a particular structure 
+    - definition of "denormalized data" or "semi-struct" - where all info relating to a particular entity is in ONE table and each one can use its own schema with optional fields
+        - but multi address could lead to duplication... 
+    - think Azure Cosmos DB NoSQL & MongoDB => you CAN query based on document attributes (customer name...)
+        - product catalog, content mgt, profile, shopping cart... HIGH Tx entities 
+- **Column Family Databases**: store tabular data of rows & cols, but columns are in groups known as column-families that store info that's logically related 
+    - you have a number of set of col families ~ relational databases: BUT it can handle sparse data
+        - These col families are typically retrieved/manipulated as a unit 
+    - best for structured, volatile data -> col family 
+        - update/delete are not performed often, scalable... 
+        - you "scan" to get multiple rows and you "get/put" to access cells 
+    - Use CosmosDB Cassandra: best for IOT, RT analytics, Fin data, transaction history, messaging, web analytics, weather/time series... 
+- **Graph Database**: store entities as "nodes" with "edges" to define relationships between them 
+    - Made up of nodes & edges - edge is the relationship between 2 nodes, and can store info about the node or edge on that node or edge (username on the node, or relationship = friend on the edge)
+    - perform queries for "all people who report to XYZ" or "who else works in John's dept?" 
+        - relationships can be dynamic
+        - relationships don't need FKs & Joins to traverse 
+        - can have a composite object: Person with multi phone #s that can be a set of small nodes combined 
+    - CosmosDB Apache Gremlin for: fraud detection, org charts, people & relationships for social media, recommendation engines...
+- this allows for the schema to be setup however your application needs it - making it VERY flexible and can easily evolve over time 
+    - often very scalable - CosmosDB 
+
+![Column Family](./pictures/DP-900/column-family-conceptual.png)
+
+### Transactional data processing solutions 
+- records transactions that are specific events and info around the event that the org wants to track (purchases/payments, inventory, orders, accounting etc...)
+- These often need to run and perform at scale with high-volume and sometimes handling millions of Tx per day 
+    - Transaction: small, discrete unit of work 
+        - In general, the workloads are: heavy writes & moderate reads with quick processing 
+    - generally store data as row storage for processing small transactions
+- this work is often called OLTP (OnLine Transactional Processing)
+- uses highly normalized, CRUD optimized relational databases 
+- They often rely on a RDBMS where data storage is optimized for r/w operations where data is CRUD (created, retrieved/read, updated, deleted) 
+    - often multiple operations need to be completed in a single transaction 
 - OLTP that support live apps & process biz data are called: *LOB apps*
 
-## Analytical data processing solutions 
+### Analytical data processing solutions 
 - generally uses mostly read-only systems that store vast volumes of historical data or biz metrics 
 - analytics can be performed for data at a given point in time, or across a time-series of snapshots 
 - data is often consolidated or transformed into an analytics store & then queried 
@@ -166,6 +182,21 @@
     - data analysts may query tables in DW to create reports & visualizations 
     - business users may consume data from OLAP, dashboards or reports 
 
+### Other data stores mentioned in documentation
+- **Search Engine** 
+    - search for info held in external data stores 
+    - index mass volumes of data and provide near RT access to indexes 
+    - indexes can be multi-dim & support exact/fuzzy text searches
+    - queries can be adhoc and complex - full text search and self-service query is required 
+    - works on semi & unstruct data 
+    - best for product catalogs, site search, logging... 
+- **Time Series Database** 
+    - data values organized by time
+    - large data in RT from variety of sources 
+    - updates are rare, delets done in bulk
+    - small records, but HUGE volume 
+    - usually for monitoring/event telemetry 
+
 ## Data Professional Roles & User Types
 - Many roles involved in managing, controlling & using data. It's important to understand common division of tasks & responsibilities 
     - in the real world things are not as clear, and sometimes a person might perform multiple roles 
@@ -184,7 +215,7 @@
     - explore data to ID trends & relationships
     - design & build analytical models
     - enable analytics through reports/visualizations 
-- Honorable mentions: *data scientist* *data architect* *application developer* *software engineer* 
+- Honorable mentions: *data scientist*, *data architect*, *application developer*, *software engineer* 
 
 ## Data Services in Azure 
 - as a cloud platform it has many commonly used data services for a variety of use-cases. Here are the most commonly used ones: 
@@ -328,7 +359,7 @@ EXEC RenameProduct 201, 'Spanner';
     - you pick the SQL Server edition (Enterprise, Standard, Web... free license on a particular OS) & it deploys
     - *Use-cases*: Great for lift n shift migrations OR when you need FULL control over all aspects of server OS & db config OR rapid dev & test of ideas without on-prem, non-prod SQL server 
     - *Compatibility*: Fully compatible with on-prem MS SQL enabling lift n shift without changes 
-        - if you run the VM on linux, there are limited features. Only windows has FULL support of all features. 
+        - Only windows has FULL support of all features. if you run the VM on linux, there are limited features.  
     - *Tech Stack*: MS SQL DBMS installed on a single VM - can run multiple DB on that VM 
     - *Owner Responsibility*: you MUST manage all aspects from OS on up - all dbms updates, configs, backups etc... 
     - mimics on-prem MSFT SQL - just running in Azure 
@@ -340,14 +371,14 @@ EXEC RenameProduct 201, 'Spanner';
 - [**Azure SQL Managed Instance**](https://learn.microsoft.com/en-us/azure/azure-sql/managed-instance/sql-managed-instance-paas-overview?view=azuresql): PaaS middle option that provides with middle option between IaaS & full PaaS
     - can create single instance or an Azure Arc managed instance
     - *Use-cases*: general cloud migration to Azure with minimal app changes
-        - if you used linked servers, service broker (message system to distr work across servers), or db mail - should use managed instance
+        - if you use linked servers, use service broker (message system to distr work across servers), or db mail - should use managed instance
         - can be deployed on-prem or in another cloud using Azure Arc
     - *Compatibility*: near 100% compatibility & most on-prem dbs can be migrated with minimal code changes using Azure DB Migration service 
         - can install Data Migration Assistant to check compatibility with this
         - uses Az AD to perform logins with a user/pass and can use Az AD so your computer is trusted and you only need to login once 
         - NO SQL Server Analysis Services SSAS - run complex analytic queries 
         - NO SQL Server Reporting Services SSRS - generate complex reports in SQL server 
-        - NO Polybase - connect to external data sources and run SQL queries (allows you to join dataq from a SQL server instance using T-SQL with external sources like other SQL servers, Oracle, Teradata, MongoDB & hadoop...)
+        - NO Polybase - connect to external data sources and run SQL queries (allows you to join data from a SQL server instance using T-SQL with external sources like other SQL servers, Oracle, Teradata, MongoDB & hadoop...)
     - *Tech Stack*: Managed Instance can support multiple dbs, can use instance pools to share resources across smaller instances 
     - *Owner Responsibility*: Azure will perform auto software updates, backups, recovery, db monitoring and other general tasks. You control security & resource allocation for db
     - managed instances rely on Azure services for the automated tasks it performs: Azure Storage for backups, Azure Event Hubs for telemetry, Azure AD for authc, Azure Key Vault for data encryption... 
@@ -362,7 +393,7 @@ EXEC RenameProduct 201, 'Spanner';
 - **Azure SQL Database**: full PaaS designed for cloud
     - *Use-cases*: best for *new* app dev in the cloud that needs latest stable SQL Server features, apps that require HA, systems with variable load that need to scale up/down, migrate apps that have low impact on db adjustments... 
     - *Compatibility*: supports core db capabilities, some features of on-prem are not available (see below)
-        - NO cross-database queries & transactions within a single sql server instance (can run transactions that affect multi-db)
+        - NO cross-database queries & transactions *within a single sql server instance* (can run transactions that affect multi-db)
         - NO database mail
         - NO SQL Server Agent: executes scheduled admin tasks 
         - NO Native VNet support: only managed instance/VM can be attached to VNet
@@ -615,7 +646,7 @@ EXEC RenameProduct 201, 'Spanner';
     - they have a Keyspace >> Table >> Row
 - **Cosmos DB for Apache Gremlin**: data in a graph structure
     - entities are defined as vertices that form nodes in a connected graph 
-    - includes functions to operate on vertices & edges allowing you to CRUD graph data 
+    - includes functions in Gremlin language to operate on vertices & edges allowing you to CRUD graph data 
     - create a new Graph Database (~schema), and then create a "Graph" (~table) and then you can create nodes & relationships
 
 ### Configuration & Cost of Cosmos DB
@@ -698,8 +729,6 @@ EXEC RenameProduct 201, 'Spanner';
     - typically performs ETL or ELT so that landed data is optimized for analytical queries (cleaned, filtered, agg, transformed...)
     - large scale data ingestion best done using pipelines created through Azure Data Factory or Synapse Analytics 
     - one or more activities that operate on data reading from input through combinations, manipulations etc... to create final output 
-    - pipeline activities can use built-in or use *linked services* to load and process data - so you can use right tech for each step fo the workflow: 
-        - use Blob store to ingest, then SQL database to run a stored proc, then do data processing in Databricks or HDInsight... 
 
 2. **Analytical Data Store - DW or DL** 
     - the relational DW itself, filesystem based data lakes, or hybrid arch data lakehouse 
@@ -741,6 +770,8 @@ EXEC RenameProduct 201, 'Spanner';
     - can integrate with other Azure services, CI/CD and used by data engineers to ETL 
     - can also manage SSIS (SQL Server Integration Services packages) 
     - can run Polybase 
+    - pipeline activities can use built-in or use *linked services* to load and process data - so you can use right tech for each step fo the workflow: 
+    - use Blob store to ingest, then SQL database to run a stored proc, then do data processing in Databricks or HDInsight... 
 - **Components of Data Factory**
 - Pipelines: group of activities that can be scheduled
     - you chain these activities together 
@@ -754,7 +785,7 @@ EXEC RenameProduct 201, 'Spanner';
 - Dataset: representation of data structure within data store  
 - Integration runtime - the compute infra behind data factory that "runs" the queries you are submitting 
     - can either do azure, self hosted, or azure SSIS - using existing SSIS packages to execute 
-- Triggers - can define triggering events/times for pipelines to run
+- Triggers - can define triggering/scheduling events/times for pipelines to run
 
 ![Synapse Overview](./pictures/DP-900/synapse-overview.png)
 - **Azure Synapse Analytics**  
@@ -779,7 +810,6 @@ EXEC RenameProduct 201, 'Spanner';
     - stored data in DL Gen2 storage in parquet, csv, JSON 
     - can only mount Blob storage & DL Gen2
         - cannot mount az file shares or az table storage
-    
 
 - **Azure Databricks** 
     - Azure integrated version of Databricks platform which combines apache spark data processing, with SQL db semantics and an integrated management interface to enable large-scale data analytics 
@@ -949,6 +979,7 @@ EXEC RenameProduct 201, 'Spanner';
 
 ### Data Modeling Concepts 
 > NOTE: This is not the analytics and statistical analysis of data modeling - this is reporting data structure
+
 ![OLAP Cube](./pictures/DP-900/olap-cube_az-analytical-model.png)
 
 - PowerBI can define an OLAP cube from tables of data if you feed it the data sources 
@@ -981,6 +1012,7 @@ EXEC RenameProduct 201, 'Spanner';
 - **Line Charts** - compare categorized values and useful to examine trends over time 
 - **Pie Charts** - show proportions of a total 
 - **Scatter Plots** - compare 2 numeric measures to determine relationship/correlation 
+- **Treemap** - 
 - **Maps** - Geographic comparison 
 - Interactive reports in PowerBI 
     - visual elements are linked together and provide interactivity - auto highlighting, filtering, etc 
@@ -993,7 +1025,7 @@ EXEC RenameProduct 201, 'Spanner';
 - **Report**: One or more pages of visualizations 
     - must come from at least ONE dataset (every report you create is associated with underlying data)
     - single report can feed multi dashboards
-- **Paginated Reports**: pixel-perfect multi-page reports for printing/archival  
+- **Paginated Reports**: pixel-perfect multi-page reports for printing/archival (pdfs, word docs...)
     - created in PowerBI report builder 
 - **Dashboard**: Single page visualizations from various reports 
     - canvas page with multiple tiles 

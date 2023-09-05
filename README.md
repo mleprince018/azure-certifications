@@ -32,7 +32,23 @@
 - [My notes I used to pass the exam](./DP-900%20Azure%20Data%20Fundamentals.md)
 - Udemy Course: [DP-900: Microsoft Azure Data Fundamentals in a Weekend](https://www.udemy.com/course/dp-900-azure-data-fundamentals-certification/) 
   - chosen because of quizzes in addition to practice exam - and had ~ 8h of content which was long enough to cover details, but not spend time relearning the basics 
-  - Slide 42 is particularly helpful 
+  
+## My Study Path & Exam Review 
+- Go through the learning path(s) and take [notes](./DP-900%20Azure%20Data%20Fundamentals.md)
+- Covered the [Udemy Course](https://www.udemy.com/course/dp-900-azure-data-fundamentals-certification/)
+- Take the [free practice exam](https://learn.microsoft.com/en-us/certifications/exams/dp-900/practice/assessment?assessmentId=24&assessment-type=practice) twice & cover missed question topics 
+- Review notes prior to the exam 
+
+- **Review of the Exam** 
+  - This exam was a breeze with the Udemy course, definitely needed this to answer some of the oddball questions that the learning paths did not cover!
+  - definitely some stranger questions surrounding the detailed usage of PowerBI & a focus on ACID and the clustered/nonclustered indexes 
+  - But I was able to pass this exam on the first try!
+
+- **Reflection**
+  - I wouldn't make any other changes to how I approached this exam or how I would recommend it for others. 
+
+  # References & Overview for Azure Data Engineering 
+  - Main Page: https://learn.microsoft.com/en-us/certifications/exams/dp-203/ 
 
 # References for Future Learning 
 - Stumbled across [this](https://learn.microsoft.com/en-us/azure/architecture/guide/technology-choices/technology-choices-overview) - which explains azure's approach to selecting services - probably where a lot of exam material is pulled from 

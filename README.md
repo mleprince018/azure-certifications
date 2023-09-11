@@ -70,3 +70,5 @@
 - [Azure Cost Mgt & Billing](https://learn.microsoft.com/en-us/training/paths/control-spending-manage-bills/)
 - [Cloud Adoption Framework](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/) 
 - [SQL Server Labs & Lessons](https://microsoft.github.io/sqlworkshops/?WT.mc_id=azuresql4beg_azuresql-ch9-code)
+
+Handy PySpark reference: https://ericxiao251.github.io/spark-syntax/ 

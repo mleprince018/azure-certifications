@@ -1,12 +1,14 @@
 # azure-certifications: AZ-900, DP-900 
 
 # References & Overview for Azure Fundamentals AZ-900
+
 - Main page with learning paths and link to practice exam: https://learn.microsoft.com/en-us/certifications/azure-fundamentals/ 
 - Study guide: https://learn.microsoft.com/en-us/certifications/resources/study-guides/AZ-900 
 - [My notes I used to pass the exam](./AZ-900%20Azure%20Fundamentals.md)
 - Step through the questions here so you can get familiar with what it will feel like on exam day: aka.ms/examdemo (10 min)
 
   ## My Study Path & Exam Review 
+
   > NOTE: Several years ago - I took the AWS Cloud Practitioner & AWS Solutions Architect. I came into this study & exam with basic knowledge of cloud fundamentals & usage. 
   - Go through each learning path and take [notes](./AZ-900%20Azure%20Fundamentals.md)
   - **Review the study guide and be able to answer all verbally prior to exam!**
@@ -28,12 +30,14 @@
       - this made it much easier to understand and pick up because it was more "organized" than AWS was about 5 years ago 
 
 # References & Overview for Azure Data Fundamentals DP-900
+
 - Main Page: https://learn.microsoft.com/en-us/certifications/exams/dp-900/ 
 - [My notes I used to pass the exam](./DP-900%20Azure%20Data%20Fundamentals.md)
 - Udemy Course: [DP-900: Microsoft Azure Data Fundamentals in a Weekend](https://www.udemy.com/course/dp-900-azure-data-fundamentals-certification/) 
   - chosen because of quizzes in addition to practice exam - and had ~ 8h of content which was long enough to cover details, but not spend time relearning the basics 
   
   ## My Study Path & Exam Review 
+
   - Go through the learning path(s) and take [notes](./DP-900%20Azure%20Data%20Fundamentals.md)
   - Covered the [Udemy Course](https://www.udemy.com/course/dp-900-azure-data-fundamentals-certification/)
   - Take the [free practice exam](https://learn.microsoft.com/en-us/certifications/exams/dp-900/practice/assessment?assessmentId=24&assessment-type=practice) twice & cover missed question topics 
@@ -48,9 +52,11 @@
     - I wouldn't make any other changes to how I approached this exam or how I would recommend it for others. 
 
 # References & Overview for Azure Data Engineering DP-203
+
   - Main Page: https://learn.microsoft.com/en-us/certifications/exams/dp-203/ 
   
   ## My Study Path & Exam Review 
+
   - Watched the videos from the [exam readiness zone](https://learn.microsoft.com/en-us/shows/exam-readiness-zone/preparing-for-dp-203-design-and-implement-data-storage-1-of-3) and discovered this is VERY different from the Fundamentals courses 
     - the 3 videos are all more than 20min long and incredibly in-depth on the detailed requirements for setting up data storage, data processing & securing/optimizing processing
   - Go through the learning paths & take notes

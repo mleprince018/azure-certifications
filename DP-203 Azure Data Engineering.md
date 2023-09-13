@@ -2,7 +2,7 @@
 
 ![Overview of DEngr](./pictures/./DP-203/overview-data-engineering-azure.png)
 
-# Intro to DEngr on Az
+# [Intro to DEngr on Az](https://learn.microsoft.com/en-us/training/paths/get-started-data-engineering/)
 
 ## Concepts
 
@@ -171,8 +171,8 @@
 - Data Integraiton: synapse pipelines for ingesting, prep model & serve data
 - Integrated analytics: put services together into 1 cohesive solution by integrating analytics landscape into 1 service without backend IT mgt
 
-# T-SQL Basics
-
+# [T-SQL Basics] (https://learn.microsoft.com/en-us/training/paths/get-started-querying-with-transact-sql/)
+[T-SQL Examples on how to run queries](./T-SQL%20Examples.md)
 ## Introduction
 
 - SQL standard was defined by ANSI - but each vendor has added variations & extensions
@@ -187,3 +187,24 @@
   - for SQL, the customer table represents a "set" and a SELECT statement also forms another set 
   - you operate on the "set" of data and not individual members - your actions/operations occur "all at once" 
   - no concept of "process ordering members" first,second,last row... don't matter for processing logic, just that they are members of a set that NEED to be processed
+- Schemas: logical namespace in the database - allows for hierarchical naming system
+  - fully qualified name: {DB Name}.{schema name}.{Table name} 
+  - generally speaking, you will operate within a particular database, so you only need to specify {schema}.{table}
+- Data Manipulation Language (DML) is the set of SQL statements that focuses on querying and modifying data. DML statements include SELECT, the primary focus of this training, and modification statements such as INSERT, UPDATE, and DELETE.
+- Data Definition Language (DDL) is the set of SQL statements that handles the definition and life cycle of database objects, such as tables, views, and procedures. DDL includes statements such as CREATE, ALTER, and DROP.
+- Data Control Language (DCL) is the set of SQL statements used to manage security permissions for users and objects. DCL includes statements such as GRANT, REVOKE, and DENY.
+- Sometimes you may also see TCL listed as a type of statement, to refer to Transaction Control Language.
+- In addition, some lists may redefine DML as Data Modification Language, which wouldn't include SELECT statements, but then they add DQL as Data Query Language for SELECT statements.
+
+### SQL Order of Operations 
+
+1. The FROM clause is evaluated first, to provide the source rows for the rest of the statement. A virtual table is created and passed to the next step.
+2. The WHERE clause is next to be evaluated, filtering those rows from the source table that match a predicate. The filtered virtual table is passed to the next step.
+3. GROUP BY is next, organizing the rows in the virtual table according to unique values found in the GROUP BY list. 
+    - A new virtual table is created, containing the list of groups, and is passed to the next step. 
+    - From this point in the flow of operations, only columns in the GROUP BY list or aggregate functions may be referenced by other elements.
+4. The HAVING clause is evaluated next, filtering out entire groups based on its predicate. The virtual table created in step 3 is filtered and passed to the next step.
+5. The SELECT clause finally executes, determining which columns will appear in the query results. 
+    - *Because the SELECT clause is evaluated after the other steps, any column aliases (in our example, Orders) created there cannot be used in the GROUP BY or HAVING clause.*
+6. The ORDER BY `ORDER BY Category ASC, Price DESC` clause is the last to execute, sorting the rows as determined by its column list.
+

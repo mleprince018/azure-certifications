@@ -208,3 +208,123 @@
     - *Because the SELECT clause is evaluated after the other steps, any column aliases (in our example, Orders) created there cannot be used in the GROUP BY or HAVING clause.*
 6. The ORDER BY `ORDER BY Category ASC, Price DESC` clause is the last to execute, sorting the rows as determined by its column list.
 
+### SQL Joins
+
+- Without a WHERE clause - the result is a cartesian product ==> combining every row in one table to every row of another table  
+- CROSS JOIN == Cartesian product (you get an error if you use the ON clause with cross join)
+```sql
+SELECT emp.FirstName, prd.Name
+FROM HR.Employee AS emp
+CROSS JOIN Production.Product AS prd;
+-- The above is functionally equivalent to: 
+SELECT emp.FirstName, prd.Name
+FROM HR.Employee AS emp, Production.Product AS prd;
+```
+
+
+- Using a where caluse will default to an inner join - equivalent to the below: 
+```sql
+SELECT emp.FirstName, ord.Amount
+FROM HR.Employee AS emp 
+INNER JOIN Sales.SalesOrder AS ord
+    ON emp.EmployeeID = ord.EmployeeID;
+-- The above is functionally equivalent to: 
+SELECT emp.FirstName, ord.Amount
+FROM HR.Employee AS emp, Sales.SalesOrder AS ord
+WHERE emp.EmployeeID = ord.EmployeeID;
+```
+- **High Level Processing** 
+  - FROM & JOIN clause(s) pulls in tables & assigns appropriate aliases (emp & ord)
+  - SQL Server performs a *logical* cartesian join and passes results as virtual table to next step 
+    - NOTE: it may not actually physically create the cartesian product depending on optimizers
+  - Using the ON clause - it filter virtual table keeping only rows where emp.EmployeeID = ord.EmployeeID 
+    - This can repeat for each table "joined"
+  - Filtered rows are passed to select statement and those cols from the rows are returned 
+
+- **General guidelines** 
+  - table aliases used in select col list 
+  - can join on more than one col 
+  - order of tables matters in LEFT|RIGHT joins 
+  - presence of NULLs across multiple joins can cause issues & may be kicked out by subsequent joins
+    - can use IS NULL after an outer join to catch certain missing 
+  - ORDER BY is required to keep order of query consistent - no guarantee it will match order of the input tables 
+
+### SQL SubQueries (Nested queries)
+- In general - subqueries are evaluated once & provide results to outer query. They have 2 return types & dependencies
+- MUST be enclosed in parentheses - TSQL allows up to 32 layers of subqueries
+- You can only return cols from the outer query 
+- **Scalar Return Type**: return a single value that the outer query must expect to process a single result 
+- Scalar self Contained Example: Give me the details of the latest customer order (returns 1 value) and compare it to avg qty
+    ```sql 
+    SELECT SalesOrderID
+      , ProductID 
+      , OrderQty
+      , (SELECT AVG(OrderQty)
+      FROM SalesLT.SalesOrderDetail) AS AvgQty
+    FROM SalesLT.SalesOrderDetail
+    WHERE SalesOrderID = 
+      (SELECT MAX(SalesOrderID)
+      FROM SalesLT.SalesOrderHeader);
+    ```
+
+- **multi-value Return Type**: basically a table with n # of cols 
+- Multi-Value self Contained Subquery Example: Get me all orders from customers in Canada
+    ```sql
+    SELECT CustomerID, SalesOrderID
+    FROM Sales.SalesOrderHeader
+    WHERE CustomerID IN (
+        SELECT CustomerID
+        FROM Sales.Customer
+        WHERE CountryRegion = 'Canada');
+    ```
+
+- Dependencies: 
+  - *Self Contained Query*: can be written & run stand-alone with no dependencies on outer query
+    - processed once and passes results to outer query 
+  - *Correlated Subquery*: references 1+ cols from outer query & therefore depends on it 
+    - can ONLY be run with outer query and not separately on its own 
+    - can complicate troubleshooting and be called multiple times 
+- Example Correlated Subquery: Max order from each customer - checks if each row its looking at is the max for a particular customer
+    ```sql
+    SELECT SalesOrderID, CustomerID, OrderDate
+    FROM SalesLT.SalesOrderHeader AS o1
+    WHERE SalesOrderID =
+        (SELECT MAX(SalesOrderID)
+        FROM SalesLT.SalesOrderHeader AS o2
+        WHERE o2.CustomerID = o1.CustomerID)
+    ORDER BY CustomerID, OrderDate;
+    ```
+- If the subquery returns no rows (an empty set), the result of the subquery is a NULL. If it is possible in your scenario for no rows to be returned, you should ensure your outer query can gracefully handle a NULL, in addition to other expected results.
+- should only return single col, multi col will result in an error without EXISTS keyword 
+- To write correlated subqueries, consider the following guidelines:
+  - Write the outer query to accept the appropriate return result from the inner query. 
+    - If the inner query is scalar, you can use equality and comparison operators, such as =, <, >, and <>, in the WHERE clause. 
+    - If the inner query might return multiple values,use an IN predicate. Plan to handle NULL results.
+  - Identify the column from the outer query that will be referenced by the correlated subquery. Declare an alias for the table that is the source of the column in the outer query.
+  - Identify the column from the inner table that will be compared to the column from the outer table. Create an alias for the source table, as you did for the outer query.
+  - Write the inner query to retrieve values from its source, based on the input value from the outer query. For example, use the outer column in the WHERE clause of the inner query.
+
+- **EXISTS|NOT EXISTS** 
+> NOTE: If you're converting a subquery using `COUNT(*)` to one using EXISTS, make sure the subquery uses a `SELECT *` and not `SELECT COUNT(*)`. 
+> `SELECT COUNT(*)` always returns a row, so the EXISTS will always return TRUE. 
+
+```sql
+SELECT CustomerID, CompanyName, EmailAddress 
+FROM Sales.Customer AS c 
+WHERE
+(SELECT COUNT(*) 
+  FROM Sales.SalesOrderHeader AS o
+  WHERE o.CustomerID = c.CustomerID) > 0;
+-- Is equivalent to: 
+SELECT CustomerID, CompanyName, EmailAddress 
+FROM Sales.Customer AS c 
+WHERE EXISTS
+(SELECT * 
+  FROM Sales.SalesOrderHeader AS o
+  WHERE o.CustomerID = c.CustomerID);
+```
+- EXISTS is a way to check if something is TRUE or FALSE
+  - Meaning if a **row** is returned - then continue the outer query 
+- This is MUCH less process intensive as above because it is not doing a count AND comparison - it is simply subsetting and evaluating a boolean 
+
+014077880

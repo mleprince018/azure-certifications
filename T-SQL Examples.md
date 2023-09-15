@@ -167,7 +167,7 @@ ORDER BY ListPrice DESC;
 
 ### Distinct 
 - returns only ONE of each unique combo of cols in SELECT list 
-> by default an implicit ALL is added to the beginning of each select statement. You use the distinct to override it. 
+> by default an implicit ALL is added to the beginning of each SELECT statement. You use the DISTINCT to override it.
 
 ### Where Clause 
 - = (equals)
@@ -184,7 +184,7 @@ ORDER BY ListPrice DESC;
 - LIKE operator: use wildcard string filtering `WHERE Name LIKE '%mountain%'` ==> 'HL Mountain Frame - Silver, 42', 'Mountain-100 Silver, 38'
   - `%` is similar to the * where it is 0 or more chars
   - `_` is looking for 1 char 
-  - basic regex `[0-9]`
+  - basic regex: product number begins BK- followed by any character other than R, and ends with a - followed by any two numerals `WHERE ProductNumber LIKE 'BK-[^R]%-[0-9][0-9]'`
 
 # Nifty Items
 

@@ -327,4 +327,90 @@ WHERE EXISTS
   - Meaning if a **row** is returned - then continue the outer query 
 - This is MUCH less process intensive as above because it is not doing a count AND comparison - it is simply subsetting and evaluating a boolean 
 
-014077880
+### Built-in Functions to SQL
+- **Scalar**: operate on a single row and return a single value  
+  - most often used in SELECT or WHERE statements as they return a single value  
+  - DETERMINISTIC vs NONDETERMINISTIC: returns the same value for the same input and db state it is called (ROUND) vs GETDATE will return current date & time which is nondeterministic 
+  - Collation: Sort order of the input value or sort order of the database
+  - Examples: GETDATE, UPPER, ROUND - string manipulation, datatype conversion, datetime, mathematical, metadata, security, system, stats, text/image
+    - DateTime F(x)s: YEAR, DATENAME, DAY, DATEDIFF, GETDATE...
+    - Mathematical F(x)s: ROUND, FLOOR, CEILING, SQUARE, SQRT, LOG, +/-/^
+- **Logical**: Compare multiple values to determine single output (?case?) 
+  - `IIF` evaluates a boolean input and returns specified value if true (operates like Excel IF)
+    - `IIF(AddressType = 'Main Office', 'Billing', 'Mailing')` - if it is the Main Office, then it is Billing, otherwise its for Mailing 
+  - `CHOOSE` ~ from a numeric col, map the #s to your Choose "array"
+    - col Status has values [1,2,3] THEN `CHOOSE(Status, 'Ordered', 'Shipped', 'Delivered') AS OrderStatus` ==> 1 = Ordered, 2 = Shipped... 
+- **Ranking**: Operate on a partition (set) of rows 
+  - Appears to be a way to do a sort and create numeric value rank assignments to data - kind of like the if first & if last logic in SAS on a sorted dataset 
+  - There are many other rank functions DENSE_RANK, NTILE, ROW_NUMBER... that can be used to change numeric assignment 
+  ```sql 
+  -- Order & Rank Highest price items by category 
+  SELECT c.Name AS Category
+    , p.Name AS Product
+    , ListPrice
+    , RANK() OVER(PARTITION BY c.Name ORDER BY ListPrice DESC) AS RankByPrice
+    -- Just use below to only rank by ListPrice 
+    -- , RANK() OVER(ORDER BY ListPrice DESC)
+  FROM Production.Product AS p
+  JOIN Production.ProductCategory AS c
+  ON p.ProductCategoryID = c.ProductcategoryID
+  ORDER BY Category, RankByPrice;
+  ```
+![Rank Over with Partition](./pictures/DP-203/sql-rank-over.png)
+
+- **Rowset**: Return a virtual table that can be used in a FROM clause in TSQL 
+  - Return a virtual table that can be used in the from clause as a data source 
+  - Examples: OPENDATASOURCE | OPENQUERY | OPENROWSET | OPENXML | OPENJSON 
+  - OPENDATASOURCE | OPENQUERY | OPENROWSET allow you to do sql passthrough and execute the query on remote db server which will return a set of rows 
+  - OPENXML & OPENJSON allow you to query data in XML/JSON and pull data into SQL table
+  ```sql
+  SELECT a.*
+  FROM OPENROWSET('SQLNCLI'
+      -- This is making a connection to a different db server
+      , 'Server=SalesDB;Trusted_Connection=yes;'
+      , 'SELECT Name, ListPrice
+      FROM AdventureWorks.Production.Product') AS a;
+  ```
+
+- **Aggregate**: take one or more input row values, return a single summarizing value 
+  - Examples: SUM, MIN, MAX, COUNT, AVG... (COUNT_BIG - returns bigint rather than int)
+  - Aggregate functions return a single (scalar) value and can be used in SELECT statements almost anywhere a single value can be used. 
+    - For example, these functions can be used in the SELECT, HAVING, and ORDER BY clauses. 
+    - *However, they cannot be used in the WHERE clause.*
+  - Aggregate functions ignore NULLs, except when using COUNT(*). 
+    - MEANING: SUM will add up all non-NULL values
+    - COUNT(*) will count ALL rows regardless of NULL or not 
+    - AVG will sum populated rows & divide by num of non-Null rows and will be different from SUM(col1)/COUNT(*) if col1 has null values 
+    - TIP: can fix null values by using coalesce 
+  - Aggregate functions in a SELECT list don't have a column header unless you provide an alias using AS.
+  - Aggregate functions in a SELECT list operate on all rows passed to the SELECT operation. 
+    - If there is no GROUP BY clause, all rows satisfying any filter in the WHERE clause will be summarized. You will learn more about GROUP BY in the next topic.
+  - Unless you're using GROUP BY, you shouldn't combine aggregate functions with columns not included in functions in the same SELECT list.
+  - DISTINCT can be useful in removing duplicate rows 
+
+![Aggregating against NULL values](./pictures/DP-203/sql-aggregating-NULLs.png)
+
+### GROUP BY 
+- used with aggregations - to allow you to subset aggregations by different col values 
+  - Remember when you use an agg function, you NEED to group by all other cols in the select that don't have an agg 
+  ```sql
+  SELECT CustomerID, PurchaseOrderNumber, COUNT(*) AS OrderCount
+  FROM Sales.SalesOrderHeader
+  GROUP BY CustomerID;
+  -- Leads to below ERROR:
+  Msg 8120, Level 16, State 1, Line 1
+  Column 'Sales.SalesOrderHeader.PurchaseOrderNumber' is invalid in the select list because it is not contained in either an aggregate function or the GROUP BY clause.
+  -- ERROR Because: This query returns one row for each CustomerID value. But rows for the same CustomerID can have different PurchaseOrderNumber values, so which of the values is the one that should be returned?
+  ```
+  - ALSO - since GROUP BY is run BEFORE the SELECT statement - it doesn't know the "aliases" you've assigned during select. You must fill it in with original values 
+
+- **HAVING** - a way to subset your agg query
+  - WHERE subsets the data fed into the query
+  - HAVING subsets the agg rows (customers who've ordered more than 10 times)
+  ```sql
+  SELECT CustomerID,
+        COUNT(*) AS OrderCount
+  FROM Sales.SalesOrderHeader
+  GROUP BY CustomerID
+  HAVING COUNT(*) > 10;
+  ```

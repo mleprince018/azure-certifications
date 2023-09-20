@@ -543,13 +543,24 @@ WHERE Notes IS NULL
 
 ### DELETE & TRUNCATE
 - Removes entire rows from a table - THERE IS NO UNDO so make sure to double check and always use a WHERE condition
-```sql
+- Truncate runs faster than DELETE FROM
+```sql 
+-- SELECT * -- Test with a SELECT first to confirm, then DELETE
 DELETE [FROM] <TableName>
 WHERE <search_conditions>;
 -- TRUNCATE will remove all rows from a table, doesn't accept where and always removes all rows in ONE operation
 DELETE FROM Sales.Sample;
 -- is equivalent to:
 TRUNCATE TABLE Sales.Sample;
+```
+- Can use these subqueries in combination with the UPDATE/INSERTS to ensure you are always getting the correct kind of item
+```sql
+-- DELETE Products that match the product category ID that was inserted with the name 'Bells and Horns'
+DELETE FROM SalesLT.Product
+WHERE ProductCategoryID =
+    (SELECT ProductCategoryID
+     FROM SalesLT.ProductCategory
+     WHERE Name = 'Bells and Horns');
 ```
 
 ### MERGE

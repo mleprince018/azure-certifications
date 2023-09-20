@@ -177,3 +177,58 @@
 
 # Azure Synapse Serverless SQL Pool 
 
+## Synapse Serverless SQL Pool Overview 
+- Synapse SQL is a distr query system that offers Serverless & dedicated
+  - Serverless SQL Pool: on-demand SQL query processing, generally used to work with DL contents
+  - Dedicated SQL Pool: Enterprise Scale RDBMS to host DW 
+- Benefits of Serverless SQL Pool: 
+  - T-SQL syntax to query data in place without copying data or loading it somewhere else 
+  - connectivity to variety of commonly used BI & ad-hoc query tools with popular drivers 
+  - distr query processing built for large-scale data & computational functions 
+  - query fault-tolerance for high reliability & success rates 
+  - no infra to setup or clusters to maintain - built-in endpoint is created with every synapse workspace 
+  - charged only for data processed by queries run, not by resources reserved 
+- When to use serverless SQL pools 
+  - best for querying DL data - so you don't need to manage infra, or connection - you just query and go 
+  - best for burstable workloads using an always-on serverless SQL endpoint  
+  - Data Exploration: browsing DL data for insights, do basic projections, filtering, grouping, etc... 
+  - Data Transformation: perform SQL based data transformations interactively or through pipelines
+  - Logical DW: can define external obj like tables & views -> and build a basic abstracted schema on top of DL data 
+    - ?? is this the data lake house concept ??
+
+> NOT recommended for OLTP for transactional data or millisecond response times 
+
+## Querying Files using SQL Pool 
+
+### Generic OPENROWSET to read-in files
+
+- Can query text files in DLM (csv, tsv), JSON, Parquet 
+- Use `OPENROWSET` to query the files, produces a rowset that *requires an alias - AS rows*
+  - has options to determine header, and schema of rowset... 
+> NOTE: IRL you may need a server-scoped credential | key | custom identity to access data 
+```sql
+SELECT TOP 100 *
+FROM OPENROWSET(
+    BULK 'https://mydatalake.blob.core.windows.net/data/files/*.csv',
+    FORMAT = 'csv') AS rows
+```
+  - BULK parameter includes full URL to data file(s) 
+    - `https://mydatalake.blob.core.windows.net/data/files/**`: Selects all files in the files folder, and recursively its subfolders.
+    - Can specify multiple file paths in BULK separating each path with a comma
+  - FORMAT specifies type of data being queried 
+
+### Common OPENROWSET options for DLM Files (CSV)
+
+- Specific formatting: With and without header row, row to begin on, DLM type, EOL chars, quoted, nonquotes & esc chars 
+
+```sql 
+SELECT TOP 100 *
+FROM OPENROWSET(
+    BULK 'https://mydatalake.blob.core.windows.net/data/files/*.csv',
+    FORMAT = 'csv',
+    PARSER_VERSION = '2.0',
+    HEADER_ROW = TRUE, -- ONLY valid with PARSER_VERSION 2.0
+    FIRSTROW = 2) AS rows
+```
+- `PARSER_VERSION` : 1.0 is default and supports variety of encoding - but 2.0 is modern, faster & supports extra features 
+- `FIRSTROW`    : defines what row to begin reading in data, allows you to skip 

@@ -230,5 +230,125 @@ FROM OPENROWSET(
     HEADER_ROW = TRUE, -- ONLY valid with PARSER_VERSION 2.0
     FIRSTROW = 2) AS rows
 ```
-- `PARSER_VERSION` : 1.0 is default and supports variety of encoding - but 2.0 is modern, faster & supports extra features 
-- `FIRSTROW`    : defines what row to begin reading in data, allows you to skip 
+- `HEADER_ROW`      : reads in first row of data as col name
+- `PARSER_VERSION`  : 1.0 is default and supports variety of encoding - but 2.0 is modern, faster & supports extra features (HEADER_ROW)
+- `FIRSTROW`        : defines what row to begin reading in data, allows you to skip rows to ignore header lines or col name line 
+- `FIELDTERMINATOR` : character used to separate field values (\t, or default is comma)
+- `ROWTERMINATOR`   : character used to signify end of a row of data 
+  - Windows uses CR & LF [carriage return & line feed - `\n`] 
+  - Unix uses single line feed char - indicated by code 0x0a 
+- `FIELDQUOTE`      : char used to enclose qutoed str values - by default it is (") 
+- **Assigning a schema**
+  - can use WITH clause to specify schema of table on read-in
+```sql
+SELECT TOP 100 *
+FROM OPENROWSET(
+    BULK 'https://mydatalake.blob.core.windows.net/data/files/*.csv',
+    FORMAT = 'csv',
+    PARSER_VERSION = '2.0')
+WITH ( 
+    product_id INT,
+    product_name VARCHAR(20) COLLATE Latin1_General_100_BIN2_UTF8,
+    list_price DECIMAL(5,2)
+) AS rows
+```
+### OPENROWSET for JSON
+- For a list of product files with JSON structure below
+```json
+{
+    "product_id": 123,
+    "product_name": "Widget",
+    "list_price": 12.99
+}
+```
+- You can use SQL to read it in as a doc - OR parse the JSON in your SQL 
+```sql
+
+SELECT  doc  -- {"product_id":123,"product_name":"Widget","list_price": 12.99}
+        , JSON_VALUE(doc, '$.product_name') AS product  -- Widget
+        , JSON_VALUE(doc, '$.list_price') AS price      -- 12.99
+FROM
+    OPENROWSET(
+        BULK 'https://mydatalake.blob.core.windows.net/data/files/*.json',
+        FORMAT = 'csv',
+        FIELDTERMINATOR ='0x0b', -- stands for VT Vertical Tab as a delimiter? 
+        FIELDQUOTE = '0x0b',
+        ROWTERMINATOR = '0x0b'
+    ) WITH (doc NVARCHAR(MAX)) as rows
+
+```
+### Querying partitioned data (Parquet)
+
+![Folder Structure of Partitioned Parquet](./pictures/DP-203/partitioned-parquet-folder-structure1.png)
+```sql
+SELECT *
+FROM OPENROWSET(
+    BULK 'https://mydatalake.blob.core.windows.net/data/orders/year=*/month=*/*.*',
+    FORMAT = 'parquet') AS orders
+WHERE orders.filepath(1) = '2020'         -- 2020 
+    AND orders.filepath(2) IN ('1','2');  -- Jan & Feb
+```
+- The numbered filepath parameters in the WHERE clause reference the wildcards in the folder names in the BULK path -so the parameter 1 is the * in the year=* folder name, and parameter 2 is the * in the month=* folder name.
+
+### Creating External DB Objects 
+
+- you can use OPENROWSET and SQL pool to explore - but you may want to build a structure that allows for easier querying 
+- `CREATE DATABASE [db-name] COLLATE [encoding | Latin1_General_100_BIN2_UTF8] ` 
+  - can import UTF-8 encoded text data into varchar cols 
+
+```sql 
+CREATE DATABASE SCOPED CREDENTIAL sqlcred
+WITH
+    IDENTITY='SHARED ACCESS SIGNATURE',  
+    SECRET = 'sv=xxx...';
+GO
+
+CREATE EXTERNAL DATA SOURCE files
+WITH (
+    LOCATION = 'https://mydatalake.blob.core.windows.net/data/files/'
+    CREDENTIAL = sqlcred  -- NOTE can assign credential
+)
+
+
+SELECT *
+FROM
+    OPENROWSET(
+        BULK 'orders/*.csv',  -- NOTE orders is a subfolder under files folder from DATA_SOURCE
+        DATA_SOURCE = 'files',  -- NOTE the files reference here
+        FORMAT = 'csv',
+        PARSER_VERSION = '2.0'
+    ) AS orders
+```
+
+- Above you see a **Shared Access Signature** (SAS) that you can use to authenticate against DL storage account 
+  - Can be assigned to the data source 
+- You can query relative to that datasource location ~ path shortcut kind of thing?
+- Can also preset other read-in settings: 
+```sql 
+-- External File Format: 
+CREATE EXTERNAL FILE FORMAT CsvFormat
+    WITH (
+        FORMAT_TYPE = DELIMITEDTEXT,
+        FORMAT_OPTIONS(
+            FIELD_TERMINATOR = ',',
+            STRING_DELIMITER = '"'
+        )
+    );
+GO
+-- External Table 
+CREATE EXTERNAL TABLE dbo.products
+(
+    product_id INT,
+    product_name VARCHAR(20),
+    list_price DECIMAL(5,2)
+)
+WITH
+(
+    DATA_SOURCE = files,
+    LOCATION = 'products/*.csv',
+    FILE_FORMAT = CsvFormat
+);
+GO
+```
+
+- NOW after dbo.products has been created - you can just query it like a normal db table 

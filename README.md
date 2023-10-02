@@ -54,6 +54,7 @@
 # References & Overview for Azure Data Engineering DP-203
 
   - Main Page: https://learn.microsoft.com/en-us/certifications/exams/dp-203/ 
+  - [Handy Data Analyst Exercises for DP-500](https://microsoftlearning.github.io/DP-500-Azure-Data-Analyst/)
   
   ## My Study Path & Exam Review 
 

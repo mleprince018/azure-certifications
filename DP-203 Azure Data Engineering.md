@@ -285,7 +285,7 @@ SELECT *
 FROM OPENROWSET(
     BULK 'https://mydatalake.blob.core.windows.net/data/orders/year=*/month=*/*.*',
     FORMAT = 'parquet') AS orders
-WHERE orders.filepath(1) = '2020'         -- 2020 
+WHERE orders.filepath(1) = '2020'         -- 2020 AND note the orders. its referencing the read-in data
     AND orders.filepath(2) IN ('1','2');  -- Jan & Feb
 ```
 - The numbered filepath parameters in the WHERE clause reference the wildcards in the folder names in the BULK path -so the parameter 1 is the * in the year=* folder name, and parameter 2 is the * in the month=* folder name.
@@ -302,19 +302,25 @@ WITH
     IDENTITY='SHARED ACCESS SIGNATURE',  
     SECRET = 'sv=xxx...';
 GO
-
+-- With SQL Server pools - you can get an error about 'CREATE EXTERNAL DATA SOURCE is not supported in master database'
+-- https://learn.microsoft.com/en-us/azure/synapse-analytics/sql/resources-self-help-sql-on-demand?tabs=x80070002#create-statement-isnt-supported-in-the-master-database
+-- To get around this, you need to create the database, THEN USE IT (step 2 says to execute the create within the context of your database - but it doesn't explain how)
+CREATE DATABASE sales_order1 
+    COLLATE Latin1_General_100_BIN2_UTF8;
+GO;
+Use sales_order1; GO;  -- can use an explicit statement OR dropdown in the top bar with your script 
+-- With DB created and you being in it's "context" you can now create an external data source: 
 CREATE EXTERNAL DATA SOURCE files
 WITH (
     LOCATION = 'https://mydatalake.blob.core.windows.net/data/files/'
     CREDENTIAL = sqlcred  -- NOTE can assign credential
 )
 
-
 SELECT *
 FROM
     OPENROWSET(
         BULK 'orders/*.csv',  -- NOTE orders is a subfolder under files folder from DATA_SOURCE
-        DATA_SOURCE = 'files',  -- NOTE the files reference here
+        DATA_SOURCE = 'files',  -- NOTE the files reference here - AND strangely enough, it appears this needs to appear AFTER the BULK stmt
         FORMAT = 'csv',
         PARSER_VERSION = '2.0'
     ) AS orders
@@ -352,3 +358,295 @@ GO
 ```
 
 - NOW after dbo.products has been created - you can just query it like a normal db table 
+
+### Use CETAS
+- SQL can do many things, and using CETAS you can now write back tables to DL storage to integrate with other tools/pipelines 
+![CETAS](./pictures/DP-203/CETAS-create-external-table-as-select.png)
+- You can take basic transformed & structured datasets and store them back down as files in DL with benefits of SQL table
+- Create External Table As Select ... (CETAS) can transform data 
+  - any valid data source (table, view, openrowset...)
+  - can be transformed 
+  - then persisted in an external table (metadata obj in DB that provides relational abstraction over data) 
+  - that is stored as a file on the file system 
+  - ? said another way is this a pointer to a file? with a basic schema?
+- Subsequent processing can be done against the table itself OR the underlying data file created 
+
+```sql
+CREATE EXTERNAL TABLE SpecialOrders
+    WITH (
+        -- MUST include details for storing results
+        LOCATION = 'special_orders/', -- like an output statement
+        DATA_SOURCE = files,          -- data source
+        FILE_FORMAT = ParquetFormat   -- specify a format to output the data in 
+    )
+AS
+SELECT OrderID, CustomerName, OrderTotal
+FROM
+    OPENROWSET(
+        -- details for reading source files
+        BULK 'sales_orders/*.csv',
+        DATA_SOURCE = 'files',
+        FORMAT = 'CSV',
+        PARSER_VERSION = '2.0',
+        HEADER_ROW = TRUE
+    ) AS source_data
+WHERE OrderType = 'Special Order';
+
+-- To remove the SQL metadata around the file
+DROP EXTERNAL TABLE SpecialOrders 
+```
+
+- NOTE: DROPping an External Table does NOT remove the underlying files created on file system - just the table object in the database 
+- LOCATION is a relative location for target file drop 
+- BULK is a relative location for source file intake 20.
+
+#### Encapsulate data transformations in Stored Proc 
+
+- This is best practice to allow for supplying parameters, retrieving output & provide additional logic in a single call 
+  - can reduce client/server traffic (you send 1 request rather than multiple)
+  - Provides a security boundary - provide an abstraction layer through which other users can do specific manipulations to underlying data 
+  - ease of maintenance - abstracting domain logic from environment allows it to be easy to updated & changed, clients calling this don't need to change function name 
+  - better perf - they are compiled first time they are executed, then execution plan is held in cache and reused on subsequent runs making them marginally faster
+- Below code will create a special orders table based on a given year 
+```sql
+CREATE PROCEDURE usp_special_orders_by_year @order_year INT
+AS
+BEGIN
+	-- Drop the table if it already exists
+  -- NOTE: an ERROR will occur if you don't delete target folder before running stored proc
+	IF EXISTS (
+                SELECT * FROM sys.external_tables
+                WHERE name = 'SpecialOrders'
+            )
+        DROP EXTERNAL TABLE SpecialOrders
+
+	-- Create external table with special orders
+	-- from the specified year
+	CREATE EXTERNAL TABLE SpecialOrders
+		WITH (
+			LOCATION = 'special_orders/',
+			DATA_SOURCE = files,  -- NOTE: no quotes here
+			FILE_FORMAT = ParquetFormat
+		)
+	AS
+	SELECT OrderID, CustomerName, OrderTotal
+	FROM
+		OPENROWSET(
+			BULK 'sales_orders/*.csv',
+			DATA_SOURCE = 'files', -- NOTE: quotes here... odd...
+			FORMAT = 'CSV',
+			PARSER_VERSION = '2.0',
+			HEADER_ROW = TRUE
+		) AS source_data
+	WHERE OrderType = 'Special Order'
+	AND YEAR(OrderDate) = @order_year
+END
+```
+
+> NOTE: an ERROR will occur if you don't delete target folder before running stored proc
+- and YES you do actually need to delete the folder, not just the contents within 
+- To get around the error, you can make this code part of a pipeline and add a specific delete activity 
+- In addition - the pipeline is an object that can now be scheduled or tied to other events
+
+![Stored Proc Implementation of CETAS with Delete activity in a pipeline](./pictures/DP-203/CETAS-delete-pipeline-stored-proc-implementation.png)
+
+### Lake Databases
+
+- Combine flexibility of storing data files with advantages of a structured schema in RDBMS
+- RDBMS schema has tables with strict data types, referential integrity rules etc... and all queries/data performed through DBMS 
+- in DL there is no schema - data is in files in variety of formats & struct|unstruct and can use wide variety of languages to query 
+- **Lake Database**: relational metadata layer over 1+ files in DL 
+  - table definitions, col names, data types, relationships btw keys across tables... 
+  - *stored as parquet or csv files*
+  - can use different computes - serverless SQL pool or Apache Spark pool 
+- Create in Az Synapse Analytics using a graphical dB design interface to model complex schemas
+
+#### Database Templates & DB Designer
+
+- you can create a lake db from an empty schema, or jumpstart from an existing template 
+  - broken out by industry (Agriculture, Auto, Banking, COnsumer Goods, Manufacturing, Healthcare Insurance...)
+- DB Designer interface in Synapse provides drag n drop interface to edit tables and relationships between 
+  - specify name/storage settings, nullability, data types, relationships... 
+
+- 3 ways to define tables in a Lake Database: 
+  1. Create Custom: You can create table metadata from scratch then read in the file 
+  2. Create from Template: You can create it from an existing template and tailor it to your needs then read in the file 
+  3. Create from File: You can create it from the file/folder by reading it in and then altering the metadata for each col 
+
+#### Basic Access Controls for Serverless SQL Pools
+
+- SQL Pool authentication allows for 2 methods: 
+  - **SQL Authc** - username & pass for the SQL pool 
+    - can be used for indv who needs to access your sql pool from external org
+  - **Az AD Authc** - use Azure AD managed identities, can add MFA... - better option
+
+- Authorization : what a user can do within SQL pool db
+  - with SQL Authc - user only exists in SQL pool and perms can't be scoped to obj OUTSIDE SQL pool 
+    - meaning sql pool user cannot access Az Storage because it doesn't "exist" there 
+  - with Az AD Authc - user can sign in as themselves and all permissions are granted based on their user privs 
+
+- Users that logon to serverless SQL pool must be auth to access & query files in Az Storage - 4 methods:
+  - **Anonymous Access**: publicly available files placed on Az storage account
+  - **Shared Access Signature (SAS)**: delegated access to resources in a storage account, with a SAS you grant clients access without sharing account keys 
+    - grants granular control over type of access you want to grant with validity interval, perms, IP ranges, protocols...
+    - can be used by SQL DB user to access azure resources? 
+  - **Managed Identity**: Az AD provides services and can be used to authorize request for data access
+    - an admin would grant perms to managed identity to access data 
+    - ?user who logged into azure?
+  - **User Identity**: "pass-through" where ID of AzAD is used to authorize access to data - it's the user that logged into serverless SQL pool 
+- !!! need to review what auth types can be used by SQL user or AzureAD user and for what storage types - blob, ADLS gen2
+
+- Can add roles to users, groups, or service principals using Synapse Studio Hub's MANAGE page
+- RBAC & ACLs use POSIX like controls 
+- This ACL rule can be assigned on a file or dir and checks whether user|group|service principal has access to perform action
+  - Access ACLs: Control Access to an object - Files & Directories have Access ACLs
+  - Default ACLs: templates of ACLs associated with a directory that determine access ACLs for child items created under that dir
+    - *NOTE* files do NOT have default ACLs
+- Read / Write for a file allows read or writes
+- r-x allows you to list dir, -wx allows you to create child items in a dir 
+- AD security groups should be the principal in ACL - using individuals or service principals creates maintenance overhead 
+  - create the groups and assign principals/users to them and assign those groups as ACLs on folders
+    - OTHERWISE you would have to remove indv ACL from all subdirectories in the dir hierarchy 
+- **Roles for Serverless SQL Pool** 
+  - read only - will need 'Storage Blob Data Reader' 
+  - r/w     - will need 'Storage Blob Data Contributor'
+    - allows for creation of CETAS
+    - NOTE: ADLS may need additional roles - you may need super role for ADLS 
+
+- SlSQL Pool has commands you can use to create logins based on a SQL DBMS user, the login based on password, assign to roles, etc... 
+```sql 
+USE databasename1
+-- create a login & grant them sysadmin 
+CREATE LOGIN [alias@domain.com] FROM EXTERNAL PROVIDER;
+ALTER SERVER ROLE sysadmin ADD MEMBER [alias@domain.com];
+
+-- create a username for an alias
+CREATE USER alias FROM LOGIN [alias@domain.com];
+```
+
+# DEngr with Spark Pools
+## Analyzing data with Spark
+
+### Spark Basics
+
+- Spark is OSS MPP & popular for big data 
+- Distr data processing framework that enables large scale data analytics by coordinating work across multiple processing nodes in a cluster 
+- Spark runs a set of executors on worker nodes of a cluster coordinated by the SparkContext object in the main/driver program 
+- *SparkContext* connects to cluster manager which allocates resources across apps with a job scheduler cousin of YARN 
+  - once connected, spark gets executors on nodes in the cluster to run your app code 
+  - SparkContext runs main function & parallel ops on cluster nodes & collects results of the ops 
+  - The nodes r/w data from file system and cache transformed data in RDDs (in-memory obj)
+  - SparkContext converts a query into a DAG (Directed Acyclic Graph) which consists of tasks that get executed within executor processes on the nodes 
+  - each app gets its own executor process which stay up for duration of whole app & run tasks in multiple threads  
+- Synapse Analytics allows you to create a Spark pool that works like SQL pool, they start on demand and stop when idle - MS Az calls this "serverless" 
+- You need to specify the configs for a spark pool: 
+  - Name
+  - Size VM for nodes in the pool (option for GPU enabled nodes)
+  - \# of nodes in the pool & autoscaling specs
+  - version of spark runtime 
+
+- Spark is generally used for batch or streaming jobs to ingest, clean & transform data - generally as part of a pipeline 
+- Interactive sessions to explore, analyze & visualize data 
+- rather than SQL scripts, they use notebooks which allow you to combine markdown & code - which can then be plugged into a pipeline 
+  - Notebooks contain one or more "cells" containing either code|markdown 
+  - syntax highlighting & error support, auto-completion, interactive data viz, export results... 
+
+#### Data sources for Spark:
+
+- DL based on primary storage account for Azure Synapse workspace 
+- DL based on storage defined as a *linked service* in the workspace 
+- dedicated/serverless SQL pool in the workspace
+- AzSQL or SQL Server DBMS using Spark connector for SQL Server 
+- Az Cosmos DB Analytical DB defined as *linked service* & configured using *Az Synapse Link for Cosmos DB*
+- Az Data Explorer Kusto DB defined as *linked service* in the workspace 
+- external Hive metastore defined as *linked service* in the workspace 
+
+#### Dataframe & Basic Data Manipulation
+- can use scala or python or java & even a limited SQL library... default is pySpark 
+- spark uses RDD under the hood, but you can work with the logical *dataframe* ~ to a python dataframe but optimized for Spark
+
+```python
+%%pyspark
+from pyspark.sql.types import *
+from pyspark.sql.functions import *
+
+productSchema = StructType([
+    StructField("ProductID", IntegerType()),
+    StructField("ProductName", StringType()),
+    StructField("Category", StringType()),
+    StructField("ListPrice", FloatType())
+    ])
+
+df = spark.read.load('abfss://container@store.dfs.core.windows.net/products.csv',
+    format='csv',
+    schema=productSchema,
+    header=True
+)
+display(df.limit(10))
+# creating a datafrtme with product name & price where its mountain or road bikes
+bikes_df = df.select("ProductName", "ListPrice").where((df["Category"]=="Mountain Bikes") | (df["Category"]=="Road Bikes"))
+display(bikes_df)
+# Can do groupBy and other methods 
+counts_df = df.select("ProductID", "Category").groupBy("Category").count()
+```
+
+#### Spark Catalog 
+
+- spark catalog is a *metastore* for relational data obj like views & tables
+  - a relational abstraction over files that relate to a specific file in DL 
+- can use this catalog to integrate pyspark with SQL 
+- simplest way is to create a temp view: `df.createOrReplaceTempView("products")`
+  - this will get deleted at the end of the session, but you can create tables that persist
+- *Managed Tables* are metadata structures that store their underlying data in the storage location associated with the catalog. *Deleting a table also deletes its underlying data.*
+- *External tables* define metadata in the catalog but get their underlying data from an external storage location; typically a folder in a data lake. *Deleting an external table does not delete the underlying data.*
+  - allows you to do your transformations and explore, then once you've finished building them - you drop the table 
+
+- You can create an empty table by using the `spark.catalog.createTable` method. 
+- You can save a dataframe as a table by using its `saveAsTable` method.
+- You can create an external table by using the `spark.catalog.createExternalTable` method. 
+
+#### Visualizing Data
+
+- can analyze data queries as charts from notebook that provide basic charting in synapse UI, but you can use python graphics library to create/display data viz
+- basic charts is great for adhoc viz: 
+![Pyspark Chart](./pictures/DP-203/pyspark-notebook-chart.png)
+
+- graphics packages like Matplotlib can use code to plot graphs and such more precisely 
+  - NOTE matplotlib requires a pandas dataframe rather than spark - may need to use .toPandas() 
+
+### Spark Data Transformations 
+
+- spark provides DF object as primary structure for working with data 
+- READING DATA: you use `spark.read` to specify the file format, path & schema of data to be read 
+- TRANSFORMING DATA: you can do SQL items such as filter rows & cols, rename, create cols derived from others, replace null/other values 
+  - has a set of char manipulation functions like `split` or divide a col based on a delimiter 
+- WRITING DATA: you use the `dataframe_name.write` to write output - generally as parquet file (fast and best general use)
+
+```python
+from pyspark.sql.functions import split, year, col
+# Read in dataset
+order_details = spark.read.csv('/orders/*.csv', header=True, inferSchema=True)
+display(order_details.limit(5))
+# Create the new FirstName and LastName fields
+transformed_df = (order_details.withColumn("FirstName", split(col("CustomerName"), " ").getItem(0))
+                  .withColumn("LastName", split(col("CustomerName"), " ").getItem(1))
+                  .withColumn("Year", year(col("OrderDate")))
+        )
+# Write resulting file to a parquet file partitioned by year
+transformed_df.write.partitionBy("Year").mode("overwrite").parquet('/data1')
+# creates folder structure with: 
+# /data1 
+# --Year=2020
+# --Year=2021 ...
+
+# can save as an external table so you can access using SQL & then drop them when done
+order_details.write.saveAsTable('sales_orders', format='parquet', mode='overwrite', path='/sales_orders_table')
+```
+
+## Using Delta Lake
+### Basic Features & Capabilities 
+
+- Linux foundation Delta Lake is OSS storage layer for Spark that enables RDBMS capabilities for batch & streaming data 
+  - allows you to build a data lakehouse architecture in Spark to support SQL based data manipulation semantics with support for transactions and schema enforcement 
+  - result is an analytical data store that offers advantages of rdbms with flexibility of data file storage of DL 
+- NOTE: version matters - course covers Delta Lake v1.0 with Spark v3.1

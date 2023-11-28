@@ -466,6 +466,7 @@ FROM Sales.SalesOrderHeader;
 ```
 
 ### Generating Automatic Values 
+
 - to generate sequential values for one col -> use IDENTITY or SEQUENCE 
 - **IDENTITY** : have db create unique values for a particular table 
   - NOT at creating a unique sequential value across tables 
@@ -585,6 +586,44 @@ WHEN NOT MATCHED BY SOURCE THEN
    DELETE;
 ```
 
+## Reading from External Tables: 
+
+```sql
+-- External data source links to data lake location
+CREATE EXTERNAL DATA SOURCE StagedFiles
+WITH (
+    LOCATION = 'https://mydatalake.blob.core.windows.net/data/stagedfiles/'
+);
+GO
+
+-- External format specifies file format
+CREATE EXTERNAL FILE FORMAT ParquetFormat
+WITH (
+    FORMAT_TYPE = PARQUET,
+    DATA_COMPRESSION = 'org.apache.hadoop.io.compress.SnappyCodec'
+);
+GO
+
+-- External table references files in external data source
+CREATE EXTERNAL TABLE dbo.ExternalStageProduct
+(
+    ProductID NVARCHAR(10) NOT NULL,
+    ProductName NVARCHAR(200) NOT NULL,
+    ProductCategory NVARCHAR(200) NOT NULL,
+    Color NVARCHAR(10),
+    Size NVARCHAR(10),
+    ListPrice DECIMAL NOT NULL,
+    Discontinued BIT NOT NULL
+)
+WITH
+(
+    DATA_SOURCE = StagedFiles,
+    LOCATION = 'products/*.parquet',
+    FILE_FORMAT = ParquetFormat
+);
+GO
+```
+
 # [Program T-SQL](https://learn.microsoft.com/en-us/training/paths/program-transact-sql/)
 
 # [Advanced T-SQL](https://learn.microsoft.com/en-us/training/paths/write-advanced-transact-sql-queries/)
@@ -597,5 +636,3 @@ UPDATE SalesLT.Customer
 SET EmailAddress = NULL
 WHERE CustomerID % 7 = 1;
 ```
-
-

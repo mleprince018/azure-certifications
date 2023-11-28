@@ -622,6 +622,10 @@ counts_df = df.select("ProductID", "Category").groupBy("Category").count()
   - has a set of char manipulation functions like `split` or divide a col based on a delimiter 
 - WRITING DATA: you use the `dataframe_name.write` to write output - generally as parquet file (fast and best general use)
 
+> NOTE: when you partion data to a file, it doesn't save the cols you partitioned by on the partitioned file. 
+> So if you read in the data fater it was partitioned by year & month, if you don't have order date, you wouldn't know what you "read" back into the session by looking at data.
+> BUUUUT it seems to keep those cols if you create an external table??? 
+
 ```python
 from pyspark.sql.functions import split, year, col
 # Read in dataset
@@ -631,9 +635,11 @@ display(order_details.limit(5))
 transformed_df = (order_details.withColumn("FirstName", split(col("CustomerName"), " ").getItem(0))
                   .withColumn("LastName", split(col("CustomerName"), " ").getItem(1))
                   .withColumn("Year", year(col("OrderDate")))
+                  .withColumn("Month", month(col("OrderDate")) )
+                  .drop("CustomerName")
         )
 # Write resulting file to a parquet file partitioned by year
-transformed_df.write.partitionBy("Year").mode("overwrite").parquet('/data1')
+transformed_df.write.partitionBy("Year","Month").mode("overwrite").parquet('/data1')
 # creates folder structure with: 
 # /data1 
 # --Year=2020
@@ -650,3 +656,289 @@ order_details.write.saveAsTable('sales_orders', format='parquet', mode='overwrit
   - allows you to build a data lakehouse architecture in Spark to support SQL based data manipulation semantics with support for transactions and schema enforcement 
   - result is an analytical data store that offers advantages of rdbms with flexibility of data file storage of DL 
 - NOTE: version matters - course covers Delta Lake v1.0 with Spark v3.1
+- [Key Features](https://delta.io/) from both MSFT & Delta.io
+  - Tables that support CRUD: you can select, insert, update & delete rows of data in the same way in RDBMS 
+  - ACID Transactions: transactional data modifications that provide 
+    - *A*tomicity:    transactions complete as a single unit of work 
+    - *C*onsistency:  transactions leave the DB in a consistent state 
+    - *I*solation:    in-process transactions cannot interfere with one another 
+    - *D*urabiltiy:   When a transaction completes, changes made are persisted
+    - *DeltaL brings this transactional support to Spark by implementing a transaction log & enforcing serializable isolation for concurrent ops*
+  - Scalable Metadata - handle large tables with many partitions easily 
+  - Data Versioning & Time Travel: access/revert to earlier versions of data for audit/rollbacks or reproduction requests 
+    - can track multiple versions of each table row & even use time-travel to retrieve a previous version of a row in a query 
+  - OSS & supports standard data formats and can easily interoperate between other DL tools 
+  - Unified Batch & Streaming: setup once and can be used for both batch & streaming use-cases
+  - Schema Evolution & Enforcement - removes DQ issues 
+  - Audit Trail - log all change details providing an audit trail 
+  - DML Ops - can use SQL, Scala/Java & python to manipulate data 
+
+### Creating DeltaL formatted tables & Catalog Tables (managed vs external)
+
+- The easiest way - is to save a dataframe in *delta* format specifying a path where the file & metadata should be stored. 
+- it will auto create a '_delta_log' folder containing transaction log for the table
+  - Transaction log records _ALL_ data modifications to the table, by logging each modification, transactional consistency can be enforced & versioning info for the table can be retained 
+- can query prior version using option `versionAsOf` OR `timestampAsOf`
+
+- Catalog Tables are created using the `saveAsTable` operation 
+  - saves a table as a managed table (by default) when no filepath has been provided
+  - An external table when a filepath has been provided 
+
+```python
+# Saving as a DeltaL table 
+delta_table_path = "/delta/mydata"
+df.write.format("delta").save(delta_table_path)
+
+# Saving an External Table with format Delta - schema defaluts to 'default'
+df.write.format("delta").option("path", "/mydata").saveAsTable("<schema-name>.MyExternalTableName")
+spark.sql("CREATE OR REPLACE TABLE MyExternalTable USING DELTA LOCATION '/mydata'")
+    # CREATE TABLE IF NOT EXISTS - alternative
+
+# Save a dataframe as a managed table with format Delta
+df.write.format("delta").saveAsTable("MyManagedTable")
+
+# overwriting 
+new_df.write.format("delta").mode("overwrite").save(delta_table_path)
+# appending new data to delta table 
+new_rows_df.write.format("delta").mode("append").save(delta_table_path)
+
+#
+# Conditional updates ~ UPDATE TABLEA, SET XYZ, WHERE 
+#
+from delta.tables import *
+from pyspark.sql.functions import *
+
+### IMPORTANT - need to create a deltaTable object (not a dataframe) in order to do update
+deltaTable = DeltaTable.forPath(spark, delta_table_path)
+
+deltaTable.update(
+    condition = "Category == 'Accessories'",
+    set = { "Price": "Price * 0.9" })
+
+# View the updated data as a dataframe
+deltaTable.toDF().show(10)  # notice the .toDF() function so you can display it 
+
+### AUDITING
+# Querying a pervious version of a table by specifying version OR timestamp
+df = spark.read.format("delta").option("versionAsOf", 0).load(delta_table_path)
+df = spark.read.format("delta").option("timestampAsOf", '2022-01-01').load(delta_table_path)
+# Show _delta_log changes 
+deltaTable.history(10).show(20, False, True)
+```
+
+- Depending on how a table was added to the catalog using `saveAsTable` it can auto-create a schema or be created without a schema 
+  - When creating a table from a dataframe, the table schema is inherited from the dataframe
+  - When creating a new managed table or an external table with an empty location - you can define schema using SQL `CREATE TABLE ... USING DELTA` or pySpark
+
+```python
+from delta.tables import *
+# creating empty table schema ~ CREATE TABLE 
+    # can also use createIfNotExists or createOrReplace
+DeltaTable.create(spark) \
+  .tableName("default.ManagedProducts") \
+  .addColumn("Productid", "INT") \
+  .addColumn("ProductName", "STRING") \
+  .addColumn("Category", "STRING") \
+  .addColumn("Price", "FLOAT") \
+  .execute()
+```
+
+### Delta Lake n Streaming Data
+
+- stream processing involves reading a stream of data from a source, optionally processing fields, doing aggregations, grouping, minor manipulations and writing results to sink 
+- Spark offers native support through Spark Structured Streaming - a boundless dataframe which streaming data is captured for processing 
+  - can read from network ports, RT brokering services - Az Event Hubs, Kafka or file system locations 
+- can use Delta Lake as a source (report on new data added to table) or sink (query table to see latest streamed data) 
+  - similar to dataframe logic but now `readStream` & `writeStream`
+
+```python
+from pyspark.sql.types import *
+from pyspark.sql.functions import *
+
+# Load a streaming dataframe from the Delta Table
+stream_df = spark.readStream.format("delta") \
+    .option("ignoreChanges", "true") \
+    .load("/delta/internetorders")
+
+# Now you can process the streaming data in the dataframe
+# for example, show it:
+stream_df.writeStream \
+    .outputMode("append") \
+    .format("console") \
+    .start()
+
+# Create a stream that reads JSON files from a folder
+inputPath = '/streamingdata/'
+jsonSchema = StructType([
+    StructField("device", StringType(), False),
+    StructField("status", StringType(), False)
+])
+stream_df = spark.readStream.schema(jsonSchema).option("maxFilesPerTrigger", 1).json(inputPath)
+
+# Write the stream to a delta table 
+table_path = '/delta/devicetable'
+checkpoint_path = '/delta/checkpoint'
+delta_stream = stream_df.writeStream.format("delta") \
+  .option("checkpointLocation", checkpoint_path) \
+  .start(table_path)
+
+# can create a Delta Table that then allows you to query it using SQL 
+spark.sql("CREATE TABLE DeviceTable USING DELTA LOCATION '/delta/devicetable';")
+
+# Once querying is done - you can stop the writeStream to the Delta Lake Table: 
+delta_stream.stop()
+```
+
+- When using a Delta Lake table as a streaming source, only append operations can be included in the stream. 
+  - Data modifications will cause an error unless you specify the `ignoreChanges` or `ignoreDeletes` option.
+- 'checkpointLocation' option writes a checkpoint file that tracks state of stream processing
+  - allows you to recover from failure at point where streaming stopped/failed
+
+- [Streaming from Delta Lake](https://docs.delta.io/latest/delta-streaming.html) && [Streaming from Apache Spark](https://docs.delta.io/latest/delta-streaming.html)
+
+### [Delta Lakes n SQL Pools](https://learn.microsoft.com/en-us/azure/synapse-analytics/sql/query-delta-lake-format) 
+
+- YOU CAN ONLY QUERY DATA FROM DELTA LAKE TABLES IN SERVERLESS SQL POOL - you can NOT update, insert or delete data 
+- Tip: best practice to create db with UTF-8 collation to ensure string compatibility with parquet files 
+
+```sql
+SELECT *
+FROM
+    OPENROWSET(
+        BULK 'https://mystore.dfs.core.windows.net/files/delta/mytable/',
+        FORMAT = 'DELTA'
+    ) AS deltadata
+
+-- To query a spark catalog table in spark metastore, they go into the database "default" by default 
+USE default;
+
+SELECT * FROM MyDeltaTable;
+```
+
+# Synapse DWs 
+## Analyzing Data in Relational DW 
+
+- relational DW at the center of most BI tools 
+- Synapse has a RDBMS optimized for DW, by using dedicated SQL pools in Synapse, you can create DBs capable of hosting & querying large volumes of data 
+
+## Designing a DW Schema 
+- DW ~ RDBMS contains tables in which data you want to analyze is stored
+- tables are organized in a way that's optimized for querying --> in general fact tables contain metrics and attributes are stored in dimensions 
+- **Dimension Tables**: describe biz entities (products, people, places...)
+  - customer may have: first name, last name, email, address, etc... 
+  - *Surrogate Key*: DW specific key that identifies each row in dim table in DW (typically large incrementing INT)
+  - *Alternate Key*: the natural/business key used to ID a specific instance of an entity in transactional source system ~ customerID
+  > TWO KEYS BENEFITS: DW can be populated from various source systems leading to risk of duplicate/incompatible keys 
+  > simple numeric keys generally perform better on multi-table queries
+  > attributes of entities may change over time - customer might change address, etc... if you want to record each inst at point in time - sales that occured when a cust lived at that particular location... 
+    >  can use same custID, but different surrogate keys for diff addresses they had at different points in time
+  - almost always have a dimension table for time 
+- **Fact Tables**: store obsv or events - sales orders, etc... with multiple keys for all dimensions its tied to
+- use snowflake when certain dim tables are shared by multiple dimensions (geography - could by used by both store and customer for location)
+
+![Snowflake Schema](./pictures/DP-900/snowflake-schema.png)
+
+## Creating & Loading DW Tables
+
+1. Create a Dedicated SQL Pool 
+    - Manage Page and provision a NEW SQL pool 
+    - provide a unique name for the SQL pool 
+    - specify performance that determines cost while its running 
+    - start with an empty pool or restore from existing backup 
+    - collation of the pool (CANNOT CHANGE after it is set) - determines sort order & string comparison rules for DB 
+    > once it is started you can "pause" it so you don't incur compute costs 
+2. Create dimension tables 
+    - use IDENTITY col to auto generate SK (so table will create SK and you don't have to generate unique keys yourself)
+```sql
+-- Creating a staging table 
+CREATE TABLE dbo.StageProduct (
+    ProductID NVARCHAR(10) NOT NULL,
+    ProductName NVARCHAR(200) NOT NULL,
+    ...
+) WITH (
+    DISTRIBUTION = ROUND_ROBIN,
+    CLUSTERED COLUMNSTORE INDEX
+);
+```
+3. Can create external tables that reference a file location ~ source files so always read in 
+
+4. Loading tables can be done with a COPY INTO statement, or INSERT, UPDATE, MERGE & CREATE TABLE AS SELECT
+    - Common way to load DW is transfer data from data lake to staging tables, then use SQL to load data from staging into dim|fact tables 
+    - In general - it is a periodic batch which inserts/updates to DW with a process: 
+      - ingest data into DL by preloading/cleansing data & transforming
+      - load data into staging tables in DW
+      - Load Dim tables, update existing rows/insert new & generate SKs as needed 
+      - load fact tables - lookup SKs for related dims 
+      - perform post-load optimization by updating indexes & table distr stats 
+
+## use SQL Server for small/med DW - use Synapse for large. Why? 
+
+- **Data Integrity Constraints**: Synapse Dedicated SQL Pools don't support FK & Unique key constraints found in RDBMS 
+  - this means Synapse relies entirely on YOU to maintain FK & uniqueness when you upload data to it 
+  - [users need to make sure all values in those columns are unique.](https://learn.microsoft.com/en-us/azure/synapse-analytics/sql-data-warehouse/sql-data-warehouse-table-constraints) A violation of that may cause the query to return inaccurate result.
+- [**Indexes**](https://learn.microsoft.com/en-us/azure/synapse-analytics/sql-data-warehouse/sql-data-warehouse-tables-index): Synapse Dedicated SQL Pools support clustered indexes like SQL server, but it uses a *clustered columnstore* index type by default
+  - This is much more performant than clustered index 
+  - clustered indexes don't work on these types: varchar(max), nvarchar(max), and varbinary(max) 
+  - appears to need a certain scale before performant - Small tables with less than 60 million rows. Consider heap tables.
+- **Distribution**: Synapse Dedicated SQL Pools use MPP arch rather than SMP 
+  - Data is distr across pool of nodes for processing using 
+    - Hash: hash value calculated to partition col & assign row to compute node 
+    - Round robin: rows distr evenly across all compute nodes 
+    - replicated: copy of each table is stored in compute node 
+  - Dimension tables should be replicated if they are small to avoid data shuffling when joining fact tables 
+    - if it is too large to store on each node, use hash distr
+  - Fact tables should use hash distr with clustered columnstore index to distr fact tables across compute nodes 
+  - staging tables, you can use round robin to distr evenly across compute nodes 
+
+- **ROW_NUMBER** returns the ordinal position of the row within the partition. For example, the first row is numbered 1, the second 2, and so on.
+- **RANK** returns the ranked position of each row in the ordered results. For example, in a partition of stores ordered by sales volume, the store with the highest sales volume is ranked 1. If multiple stores have the same sales volumes, they'll be ranked the same, and the rank assigned to subsequent stores reflects the number of stores that have higher sales volumes - including ties. 
+  - If it is rank 5, there are 4 rows above
+- **DENSE_RANK** ranks rows in a partition the same way as RANK, but when multiple rows have the same rank, subsequent rows are ranking positions ignore ties. 
+  - If it is rank 5, there are 4 higher metrics (there could be 6 rows, because there might be duplicates)
+- **NTILE** returns the specified percentile in which the row falls. For example, in a partition of stores ordered by sales volume, NTILE(4) returns the quartile in which a store's sales volume places it.
+
+![SQL Row Number, Rank, Dense Rank & NTile](./pictures/DP-203/sql-rank-rownum-ntile.png)
+
+```sql
+SELECT g.EnglishCountryRegionName as Region 
+    , ROW_NUMBER() OVER(
+        PARTITION BY g.EnglishCountryRegionName 
+        ORDER BY i.SalesAmount ASC ) As RowNumber 
+    , i.SalesOrderNumber as OrderNo
+    , i.SalesOrderLineNumber as LineItem
+    , i.SalesAmount as SalesAmount 
+    -- this is like a shortcut subquery to create a sum of sales by region and tie it to each row 
+    , SUM(i.SalesAmount) OVER(PARTITION BY g.EnglishCountryRegionName) as RegionTotal
+    , AVG(i.SalesAmount) OVER(PARTITION BY g.EnglishCountryRegionName) as RegionAverage
+FROM dbo.FactInternetSales as i
+INNER JOIN dbo.DimCustomer as c         ON i.CustomerKey = c.CustomerKey
+INNER JOIN dbo.DimGeography as g        ON c.GeographyKey = g.GeographyKey
+INNER JOIN dbo.DimDate as d             ON i.OrderDateKey = d.DateKey
+WHERE d.CalendarYear = 2022
+ORDER BY Region 
+```
+![SQL RowNumber By Region & Sum/Avg by partition](./pictures/DP-203/sql_rownumber_sumpartitionby.png)
+```sql 
+SELECT d.FiscalYear as F_Year
+    , st.SalesTerritoryRegion as EmpSalesTerritoryRegion 
+    , SUM(rs.OrderQuantity) as TotalItemsSold 
+    , SUM(rs.SalesAmount) as TotalSales
+    -- NOTE the sum of the sum to get total sales for the year
+    , SUM(SUM(rs.SalesAmount)) OVER(PARTITION BY d.FiscalYear) as YearTotal 
+    -- This is what allows you to rank within a Fiscal Year the sales  
+    -- Because you already have sales territory grouped by, it will inherently rank by FYear & territory 
+    , RANK() OVER(PARTITION BY d.FiscalYear
+            ORDER BY SUM(rs.SalesAmount) DESC) as TerritoryRank
+FROM dbo.FactResellerSales as rs
+INNER JOIN DimEmployee as e             ON rs.EmployeeKey = e.EmployeeKey
+INNER JOIN DimSalesTerritory as st      ON e.SalesTerritoryKey = st.SalesTerritoryKey
+INNER JOIN dbo.DimDate as d             ON rs.OrderDateKey = d.DateKey 
+GROUP BY d.FiscalYear 
+    , st.SalesTerritoryRegion 
+ORDER BY F_Year desc  
+    , TerritoryRank 
+```
+![Ranking Territories by total number of sales per year](./pictures/DP-203/sql_rank_aggsalesbyYear.png)
+![Ranking Sales Agg](./pictures/DP-203/sql_rank-aggsales2.png)
+
+# [Load data into Relational DW](https://learn.microsoft.com/en-us/training/modules/load-optimize-data-into-relational-data-warehouse/)

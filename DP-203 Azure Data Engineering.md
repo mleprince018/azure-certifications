@@ -882,9 +882,9 @@ CREATE TABLE dbo.StageProduct (
   - appears to need a certain scale before performant - Small tables with less than 60 million rows. Consider heap tables.
 - **Distribution**: Synapse Dedicated SQL Pools use MPP arch rather than SMP 
   - Data is distr across pool of nodes for processing using 
-    - Hash: hash value calculated to partition col & assign row to compute node 
-    - Round robin: rows distr evenly across all compute nodes 
-    - replicated: copy of each table is stored in compute node 
+    - *Hash*: hash value calculated to partition col & assign row to compute node 
+    - *Round robin*: rows distr evenly across all compute nodes 
+    - *replicated*: copy of each table is stored in compute node 
   - Dimension tables should be replicated if they are small to avoid data shuffling when joining fact tables 
     - if it is too large to store on each node, use hash distr
   - Fact tables should use hash distr with clustered columnstore index to distr fact tables across compute nodes 
@@ -941,4 +941,46 @@ ORDER BY F_Year desc
 ![Ranking Territories by total number of sales per year](./pictures/DP-203/sql_rank_aggsalesbyYear.png)
 ![Ranking Sales Agg](./pictures/DP-203/sql_rank-aggsales2.png)
 
-# [Load data into Relational DW](https://learn.microsoft.com/en-us/training/modules/load-optimize-data-into-relational-data-warehouse/)
+## [Load data into Relational DW](https://learn.microsoft.com/en-us/training/modules/load-optimize-data-into-relational-data-warehouse/)
+
+### Loading Staging tables: 
+- can create separate schemas between stage and "live" data 
+- `COPY INTO` --> generally used to load staging tables due to high throughput
+```sql 
+COPY INTO dbo.StageProduct
+    (ProductID, ProductName, ...)
+FROM 'https://mydatalake.../data/products*.parquet'
+WITH
+(
+    FILE_TYPE = 'PARQUET',
+    MAXERRORS = 0,
+    IDENTITY_INSERT = 'OFF'
+);
+```
+- Or you can use external tables, so that your queries pull from the source file rather than the in-DB copy 
+```sql 
+CREATE EXTERNAL TABLE dbo.ExternalStageProduct
+(
+    ProductID NVARCHAR(10) NOT NULL,
+    ProductName NVARCHAR(10) NOT NULL,
+...
+)
+WITH
+(
+    DATE_SOURCE = StagedFiles,
+    LOCATION = 'folder_name/*.parquet',
+    FILE_FORMAT = ParquetFormat
+);
+GO
+```
+
+### Load Dimension Tables
+- Use CREATE TABLE AS 
+  - allows you to use ROW_NUMBER() function to assign unique int value for SK
+  - using CTAS with UNION - but it doesn't allow you to simultaneously generate a SK 
+  - INSERT - only works for NEW rows, not updates to existing
+    - assumes existing table has a SK defined with IDENTITY attribute so it autogenerates SK for you 
+- TIME Dimension table: 
+  - store a record for each time interval based on grain by which you want to agg data over time, and you may need to extend range of dates periodically 
+- **Slowly Changing Dimensions**
+  - 

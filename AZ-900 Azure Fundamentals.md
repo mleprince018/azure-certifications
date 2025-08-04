@@ -307,7 +307,7 @@
         - *User Defined Routing (UDR)* allows you to control routing tables between subnets within a VNet or between VNets
 - Connecting to on-prem network using a VNet gateway - two types: VPN or ExpressRoute
 
-### Azure VPN 
+### [Azure VPN](https://techcommunity.microsoft.com/t5/fasttrack-for-azure/azure-vpn-gateway-vs-expressroute-quick-comparison/ba-p/3725670) 
 
 - a VPN uses an encrypted tunnel within another network 
     - typically deployed to connect 2+ trusted private networks to one another over an untrusted network (typically internet)
